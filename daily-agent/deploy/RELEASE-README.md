@@ -4,7 +4,7 @@ Windows: unzip DailyAgent-Installer.zip, keep all files together, double-click D
 The installer copies the application to %LOCALAPPDATA%\DailyAgent and creates a desktop shortcut.
 It is not code-signed; Windows may show an unknown publisher prompt.
 
-First installation: open PowerShell and run:
+After installation choose Yes to download basic models now. If skipped, open PowerShell and run:
 powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\DailyAgent\Setup-DailyAgent.ps1"
 This downloads the local runtimes and models. Then use the Daily Agent desktop shortcut.
 Models, personal memory, pairing credentials and local settings are NOT included in the release.

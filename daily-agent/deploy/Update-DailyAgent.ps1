@@ -3,7 +3,9 @@ $ErrorActionPreference='Stop'
 [Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12
 $feed=[Uri]$ManifestUrl
 if($feed.Scheme -ne 'https' -or $feed.UserInfo){throw 'OTA requires an HTTPS manifest URL'}
-$manifest=Invoke-RestMethod -Uri $feed -TimeoutSec 30
+$response=Invoke-WebRequest -UseBasicParsing -Uri $feed -TimeoutSec 30
+if($response.RawContentStream.Length -gt 1048576){throw 'OTA manifest too large'}
+$manifest=[Text.Encoding]::UTF8.GetString($response.RawContentStream.ToArray()).TrimStart([char]0xFEFF) | ConvertFrom-Json
 $asset=$manifest.windows
 if($manifest.schema -ne 1 -or $asset.version -notmatch '^[a-zA-Z0-9._-]+$' -or $asset.sha256 -notmatch '^[a-fA-F0-9]{64}$' -or $asset.size -le 0 -or $asset.size -gt 2147483648){throw 'Invalid OTA manifest'}
 $download=[Uri]$asset.url

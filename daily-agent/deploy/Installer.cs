@@ -24,8 +24,10 @@ class Installer {
       var start=new ProcessStartInfo("powershell.exe","-NoProfile -ExecutionPolicy Bypass -File \""+Path.Combine(stage,"Install-DailyAgent.ps1")+"\" -Destination \""+destination+"\"");
       start.UseShellExecute=false;start.CreateNoWindow=true;start.RedirectStandardError=true;
       using(var p=Process.Start(start)){string error=p.StandardError.ReadToEnd();p.WaitForExit();if(p.ExitCode!=0)throw new Exception(error);}
-      MessageBox.Show("Installed. Desktop shortcut: Daily Agent\n\nFirst installation: run Setup-DailyAgent.ps1 in the installation folder to download models.\nOTA: Update-DailyAgent.ps1 (-Install to apply).","Daily Agent Setup");
-      Process.Start("explorer.exe",destination);
+      var setupNow=MessageBox.Show("安裝完成。現在下載基本模型與語音資源嗎？\n\n需要網路、數 GB 以上磁碟空間，可能花一些時間。\n本安裝目錄已有的資源會沿用；不包含選用生圖模型。\n\n選「否」可稍後執行安裝資料夾的 Setup-DailyAgent.ps1。", "Daily Agent 初次設定",MessageBoxButtons.YesNo,MessageBoxIcon.Question);
+      if(setupNow==DialogResult.Yes) {
+        Process.Start(new ProcessStartInfo("powershell.exe","-NoProfile -NoExit -ExecutionPolicy Bypass -File \""+Path.Combine(destination,"Setup-DailyAgent.ps1")+"\""){UseShellExecute=true,WorkingDirectory=destination});
+      } else Process.Start("explorer.exe",destination);
       return 0;
     }catch(Exception e){MessageBox.Show(e.Message,"Daily Agent Setup failed",MessageBoxButtons.OK,MessageBoxIcon.Error);return 1;}
   }
