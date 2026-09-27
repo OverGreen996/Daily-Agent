@@ -1,4 +1,4 @@
-param([string]$Version='0.2.1-20260928-ota-preview7',[string]$Repository='OverGreen996/Daily-Agent')
+﻿param([string]$Version='0.2.1-20260928-ota-preview7',[string]$Repository='OverGreen996/Daily-Agent')
 $ErrorActionPreference='Stop'
 if($Repository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'){throw 'Invalid repository'}
 $root=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
