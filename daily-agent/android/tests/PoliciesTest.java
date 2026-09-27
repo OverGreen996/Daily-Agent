@@ -1,0 +1,14 @@
+import tw.dailyagent.pet.Policies;
+public class PoliciesTest {
+  static void check(boolean value,String message){if(!value)throw new AssertionError(message);}
+  public static void main(String[] args)throws Exception{
+    for(String q:new String[]{"今天天氣？","附近有餐廳嗎","我在哪裡","Weather today?"})check(Policies.needsLocation(q),"location not refreshed for "+q);
+    check(!Policies.needsLocation("你好"),"ordinary chat should not request GPS");
+    check(Policies.server("https://DEMO.trycloudflare.com/").equals("https://demo.trycloudflare.com"),"normalize");
+    for(String bad:new String[]{"http://demo.example","https://user:secret@demo.example","https://demo.example/path","https://demo.example?token=secret","https://demo.example:3210","https://demo.example#token"}){boolean rejected=false;try{Policies.server(bad);}catch(Exception e){rejected=true;}check(rejected,"unsafe endpoint accepted");}
+    check(!Policies.notification("pet","pet",false,false,true,true),"own notification loop");check(!Policies.notification("pet","mail",true,false,true,true),"ongoing notification");check(!Policies.notification("pet","mail",false,true,true,true),"group duplicate");check(!Policies.notification("pet","mail",false,false,false,true),"disabled listener");check(!Policies.notification("pet","mail",false,false,true,false),"closed pet");check(Policies.notification("pet","mail",false,false,true,true),"normal notification");
+    Policies.NoticeGate gate=new Policies.NoticeGate();check(gate.add("1","Mail",0),"first event");check(!gate.add("1","Mail",1),"duplicate");gate.add("2","Calendar",2000);check(gate.take(4000,false)==null,"merge window");check(gate.take(6000,true)==null,"interrupting answer");String s=gate.take(6000,false);check(s.contains("Mail")&&s.contains("Calendar"),"summary");gate.add("3","Chat",7000);check(gate.take(80000,false)==null,"global cooldown");check(gate.take(97000,false).contains("Chat"),"event lost");
+    Policies.TouchIntent gesture=new Policies.TouchIntent();gesture.begin();check(gesture.end(false),"tap opens chat");gesture.begin();gesture.move(3,8);check(gesture.hold(),"stationary hold opens settings");check(!gesture.end(false),"hold must not also tap");gesture.begin();gesture.move(12,8);check(!gesture.hold(),"drag must cancel settings");check(!gesture.end(false),"drag must not open chat");gesture.begin();gesture.multiplePointers();check(!gesture.hold(),"pinch must cancel settings");check(!gesture.end(false),"pinch must not open chat");gesture.begin();check(!gesture.end(true),"system cancel must not tap");check(!gesture.hold(),"detached view must not open settings");
+    check(Policies.petScale(0.01f)==0.65f,"too small");check(Policies.petScale(9)==2f,"too large");check(Policies.petScale(Float.NaN)==1,"invalid scale");check(Policies.petScale(1.35f)==1.35f,"normal resize");System.out.println("PASS: endpoint privacy, notification eligibility/coalescing/cooldown, touch intent separation, persisted-size limits");
+  }
+}

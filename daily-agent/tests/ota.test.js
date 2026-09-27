@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {androidUpdate} from '../remote/UpdateFeed.js';
+import {RemoteGateway} from '../remote/RemoteGateway.js';
+test('Android OTA advertises matching APK and rejects tampered binaries or metadata',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'daily-ota-'));
+  t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const apk=path.join(dir,'test.apk'),data=Buffer.from('test-package');
+  await fs.writeFile(apk,data);
+  const meta={schema:1,version:'test.7',versionCode:7,size:data.length,sha256:createHash('sha256').update(data).digest('hex')};
+  await fs.writeFile(path.join(dir,'update.json'),'\uFEFF'+JSON.stringify(meta));
+  const feed=await androidUpdate(apk);
+  assert.equal(feed.android.versionCode,7);assert.equal(feed.android.url,'/download/android.apk');
+  assert.equal(feed.android.requires_user_install,true);
+  const gateway=new RemoteGateway({remote:{devices:{list:()=>[]}}},{port:0,apkPath:apk});
+  await gateway.start();t.after(()=>gateway.stop());
+  const response=await fetch(`http://127.0.0.1:${gateway.port}/v1/updates`);
+  assert.equal(response.status,200);assert.deepEqual(await response.json(),feed);
+  await fs.writeFile(apk,'tampered');await assert.rejects(androidUpdate(apk),/mismatch/);
+  assert.equal((await fetch(`http://127.0.0.1:${gateway.port}/v1/updates`)).status,503);
+  await assert.rejects(androidUpdate(null),/unavailable/);
+});

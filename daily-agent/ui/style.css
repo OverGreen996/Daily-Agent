@@ -1,0 +1,9 @@
+:root{font:15px/1.85 "Segoe UI","Microsoft JhengHei",sans-serif;color:#433d3c;background:transparent}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:25px;background:transparent}
+#dialog{width:min(368px,100%);padding:22px 24px 20px;border:1px solid #e4dace;border-radius:25px;background:#fffdf9;box-shadow:0 8px 28px #57463814,0 2px 5px #57463808;position:relative;margin-bottom:4px;z-index:1}
+#dialog::after{content:"";position:absolute;bottom:-9px;right:66px;width:17px;height:17px;background:#fffdf9;border-right:1px solid #e4dace;border-bottom:1px solid #e4dace;transform:rotate(45deg);border-bottom-right-radius:5px}
+.signature{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-size:12px;color:#688f86;font-weight:600}
+#bubble{white-space:pre-wrap;overflow-wrap:anywhere;max-height:170px;min-height:94px;overflow:auto;scrollbar-width:thin;scrollbar-color:#d8cbbc transparent}
+.input-wrap{display:flex;align-items:center;gap:12px;margin-top:20px;padding:9px 13px;background:#f6f2ed;border:1px solid #ece4da;border-radius:14px;transition:border-color .15s,box-shadow .15s}.input-wrap:focus-within{border-color:#a1c0b6;box-shadow:0 0 0 2px #688f8609}
+#input{display:block;width:100%;resize:none;border:0;outline:0;padding:0;background:transparent;color:inherit;font:13px/1.8 "Segoe UI","Microsoft JhengHei",sans-serif}#input::placeholder{color:#a2978c}.enter-hint{font-size:17px;color:#8b9d95;pointer-events:none}
+#pet{align-self:center;margin-left:135px;max-width:70vw;height:auto}body.expanded #dialog{width:min(650px,100%)}body.expanded #bubble{max-height:65vh}

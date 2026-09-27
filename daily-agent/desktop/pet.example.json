@@ -1,0 +1,8 @@
+{
+  "id": "my-pet",
+  "displayName": "我的桌寵",
+  "chatName": "小夥伴",
+  "description": "角色外觀與個性的簡短說明",
+  "spriteVersionNumber": 2,
+  "spritesheetPath": "spritesheet.webp"
+}

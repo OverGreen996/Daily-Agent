@@ -1,0 +1,24 @@
+{
+  "standard": "daily-pet-v2-structure-1",
+  "spriteVersionNumber": 2,
+  "columns": 8,
+  "rows": 11,
+  "recommendedCell": {"width": 192, "height": 208},
+  "cellAspectRatio": {"width": 12, "height": 13},
+  "animations": [
+    {"name":"idle","row":0,"frames":6,"frameMs":250},
+    {"name":"running-right","row":1,"frames":8,"frameMs":100},
+    {"name":"running-left","row":2,"frames":8,"frameMs":100},
+    {"name":"waving","row":3,"frames":4,"frameMs":150},
+    {"name":"jumping","row":4,"frames":5,"frameMs":150},
+    {"name":"failed","row":5,"frames":8,"frameMs":180},
+    {"name":"waiting","row":6,"frames":6,"frameMs":180},
+    {"name":"running","row":7,"frames":6,"frameMs":180},
+    {"name":"review","row":8,"frames":6,"frameMs":180}
+  ],
+  "neutral": {"row":0,"column":6,"optional":true,"fallback":{"row":0,"column":0}},
+  "look": {"rows":[9,10],"frames":16,"startDegrees":0,"stepDegrees":22.5,"clockwise":true,"zeroDirection":"screen-up"},
+  "unusedCells": "fully-transparent",
+  "minimumTransparentFractionPerFrame": 0.05,
+  "validationScope": "structure-and-alpha; visual-semantics-require-human-review"
+}
