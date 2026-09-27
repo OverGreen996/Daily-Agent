@@ -77,7 +77,7 @@ export class BrowserAgent {
     this.idleMs = idleMs;
     this.searchService = searchService;
     this.launchOptions = {
-      channel: "msedge",
+      channel: process.env.DAILY_BROWSER_CHANNEL || "msedge",
       headless: true,
       args: ["--disable-gpu", "--disable-background-networking"],
     };

@@ -1,6 +1,8 @@
 import fs from "node:fs";
 const url = "http://127.0.0.1:11435";
+const installed = await fetch(url + '/api/tags').then(r => {if(!r.ok)throw Error('Ollama unavailable');return r.json();});
 for (const model of ["qwen3.5:4b", "embeddinggemma"]) {
+  if(installed.models?.some(m=>m.name === (model.includes(':')?model:model+':latest'))){console.log('Already installed',model);continue;}
   console.log("Downloading", model);
   const r = await fetch(url + "/api/pull", {
     method: "POST",

@@ -7,7 +7,7 @@ if(Test-Path -LiteralPath $stage){throw 'Version already packaged'}
 $app=Join-Path $stage 'app'
 New-Item -ItemType Directory -Force $app | Out-Null
 $native=@(& (Join-Path $project 'daily-agent\desktop\Build-Pet.ps1'))[-1]
-foreach($name in @('Open-DailyPet.ps1','Start-DailyAgent.ps1','Stop-DailyAgent.ps1','Setup-DailyAgent.ps1','Setup-Kokoro.ps1','Setup-MobileBridge.ps1','Setup-ImageGeneration.ps1','Start-SearXNG.ps1','Configure-Search.ps1')){Copy-Item -LiteralPath (Join-Path $project $name) -Destination $app}
+foreach($name in @('Open-DailyPet.ps1','Start-DailyAgent.ps1','Stop-DailyAgent.ps1','Setup-DailyAgent.ps1','Setup-All-DailyAgent.ps1','Setup-All-DailyAgent.cmd','Setup-SpeechRecognition.ps1','Setup-Browser.ps1','Setup-LocalSearch.ps1','Setup-Kokoro.ps1','Setup-MobileBridge.ps1','Setup-ImageGeneration.ps1','Start-SearXNG.ps1','Configure-Search.ps1')){Copy-Item -LiteralPath (Join-Path $project $name) -Destination $app}
 $agent=Join-Path $app 'daily-agent';New-Item -ItemType Directory -Force $agent | Out-Null
 foreach($name in @('core','models','memory','browser','tools','idle','environment','documents','desktop','ui','remote','deploy','scripts','tests','node_modules')){Copy-Item -LiteralPath (Join-Path $project ('daily-agent\'+$name)) -Destination $agent -Recurse}
 New-Item -ItemType Directory -Force (Join-Path $agent 'android\dist') | Out-Null

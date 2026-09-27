@@ -3,6 +3,10 @@ import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 const url = "http://127.0.0.1:11435";
+const existing = await fetch(url+'/api/show',{method:'POST',body:JSON.stringify({model:'daily-qwen-idle:0.8b-q4'})});
+if(existing.ok && (await existing.json()).details?.quantization_level==='Q4_K_M'){
+  console.log('Idle Q4 model is already installed');process.exit(0);
+}
 async function stream(endpoint, body) {
   const r = await fetch(url + endpoint, {
     method: "POST",

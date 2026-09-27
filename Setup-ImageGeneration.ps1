@@ -1,4 +1,4 @@
-param([switch]$SkipModel)
+﻿param([switch]$SkipModel)
 $ErrorActionPreference='Stop'
 $root=$PSScriptRoot
 $runtime=Join-Path $root '.daily-runtime'

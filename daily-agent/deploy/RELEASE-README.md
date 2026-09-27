@@ -1,26 +1,30 @@
-# Daily Agent Windows / Android
+# 日常桌寵：電腦與 Android 安裝說明
 
-Windows: unzip DailyAgent-Installer.zip, keep all files together, double-click DailyAgent-Setup.exe.
-The installer copies the application to %LOCALAPPDATA%\DailyAgent and creates a desktop shortcut.
-It is not code-signed; Windows may show an unknown publisher prompt.
+## 電腦一鍵安裝與配置
 
-After installation choose Yes to download basic models now. If skipped, open PowerShell and run:
-powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\DailyAgent\Setup-DailyAgent.ps1"
-This downloads the local runtimes and models. Then use the Daily Agent desktop shortcut.
-Models, personal memory, pairing credentials and local settings are NOT included in the release.
-SearXNG requires Docker and Start-SearXNG.ps1; fixed Cloudflare domains require separate configuration.
+1. 完整解壓縮 DailyAgent-Installer.zip，保留所有檔案在同一資料夾。
+2. 雙擊 DailyAgent-Setup.exe，安裝到自己的電腦。
+3. 安裝完成選「是」，自動下載並配置聊天、記憶、語音、生圖模型與必要工具。
+4. 全新配置預留約 60 GB SSD 空間。中斷或重開機後，雙擊桌面 Daily Agent Setup 繼續；平時用 Daily Agent 開啟桌寵。
 
-Android: install DailyPet-Android.apk (Android 8+). All AI runs on your PC.
-This uses the existing local preview signing key, so prior preview installs can be upgraded.
+目標：Windows x64、RTX 3080 Ti 12 GB、適用的 NVIDIA 驅動。Node 已附，ComfyUI 自帶 Python。Docker／WSL 可能要求管理員授權、接受條款或重開機。Cloudflare 帳號、網域與登入由每位使用者自己設定，不會使用作者的私人連線。
 
-OTA interface:
-https://github.com/OverGreen996/Daily-Agent/releases/latest/download/update.json
-Windows: %LOCALAPPDATA%\DailyAgent\Update-DailyAgent.ps1 checks for updates.
-Add -Install to download, verify SHA-256 and install. Restart the desktop app afterwards.
-Launch-DailyAgent.ps1 -Rollback restores the previous installed application release (not a database backup).
-Android paired PC: GET /v1/updates returns versionCode, SHA-256, size and /download/android.apk.
-The Android OTA API is available; automatic update UI/background installation is not implemented.
-Android installation always needs user confirmation. Do not put tokens or private data in OTA manifests.
+## 手機
 
-Release validation: Node regression tests, Windows native self-tests, Android JVM tests and APK signature checks.
-Real Android device acceptance remains pending. The models are not bundled, and this installer is not an offline full-model distribution.
+安裝 DailyPet-Android.apk（Android 8 以上），依「使用教學.md」配對。模型在電腦運行，手機不下載模型；電腦必須開著。Android 安裝需使用者確認。
+
+## 更新與回復
+
+更新資訊：https://github.com/OverGreen996/Daily-Agent/releases/latest/download/update.json
+
+Windows 安裝目錄內的 Update-DailyAgent.ps1 可檢查更新，加 -Install 會下載、驗證 SHA-256 並安裝。更新後重開桌寵。Launch-DailyAgent.ps1 -Rollback 可回復上一個程式版本，不等同資料庫備份。
+
+Android 的電腦連線服務提供 GET /v1/updates，回傳版本、大小、SHA-256 與 APK 下載位置；尚未提供手機自動更新畫面。
+
+## 教學檔案
+
+- 使用教學.md：安裝、額外依賴、PowerShell 指令、Cloudflare、手機連線、更新與排錯。
+- 對話指令.md：聊天、搜尋、記憶、語音與生圖指令。
+- 寵物皮膚規格.md：透明圖片、動畫圖集尺寸與動作規格。
+
+安裝程式尚未簽章；此為預覽版，Android 實機完整驗收尚未完成。發布包不含模型、個人記憶、配對憑證、私密設定或簽章私鑰。首次配置需要網路下載，並非離線全模型包。

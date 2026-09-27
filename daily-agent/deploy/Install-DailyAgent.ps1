@@ -38,6 +38,10 @@ if(!$NoShortcut){
   $shortcut.TargetPath=Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
   $shortcut.Arguments='-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "'+(Join-Path $destinationRoot 'Launch-DailyAgent.ps1')+'"'
   $shortcut.WorkingDirectory=$destinationRoot;$shortcut.Save()
+  $setupShortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'Daily Agent Setup.lnk'))
+  $setupShortcut.TargetPath=$shortcut.TargetPath
+  $setupShortcut.Arguments='-NoProfile -NoExit -ExecutionPolicy Bypass -File "'+(Join-Path $destinationRoot 'Setup-DailyAgent.ps1')+'"'
+  $setupShortcut.WorkingDirectory=$destinationRoot;$setupShortcut.Save()
 }
 Write-Output ('Installed '+$manifest.version+' to '+$destinationRoot)
 Write-Output 'First launch: run Setup-DailyAgent.ps1 in the install directory to download the local models, then use the desktop shortcut. Updates preserve data and models.'
