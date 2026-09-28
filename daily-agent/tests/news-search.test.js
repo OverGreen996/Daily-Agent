@@ -42,3 +42,7 @@ test('RSS outage keeps safe undated links, cancellation stops fallback',async()=
  const p=new SearXNGProvider({endpoint:'http://localhost:8888',fetcher:async url=>{if(url.hostname!=='localhost')throw Error('offline');return {ok:true,json:async()=>({results:[{title:'地方新聞',url:'https://example.com/a'},{title:'bad',url:'javascript:bad'}]})};}});
  const r=await p.search('今天台中新聞');assert.equal(r.results.length,1);assert.equal(r.results[0].freshness,'unverified-date');p.controller.abort();await assert.rejects(p.newsFallback('新聞',3),{name:'AbortError'});
 });
+
+test('headline-only results ignore invented model details and format timestamp with zone',()=>{
+ const reply=withSearchSources('今天清晨六點發布而且很受歡迎',[{title:'新聞原標題',url:'https://example.com/a',date:'2026-09-28T06:00:00Z',coverage:'headline-only'}]);assert.match(reply,/新聞原標題/);assert.match(reply,/尚未讀取全文/);assert.doesNotMatch(reply,/很受歡迎|清晨/);assert.ok(reply.includes(Intl.DateTimeFormat().resolvedOptions().timeZone));
+});
