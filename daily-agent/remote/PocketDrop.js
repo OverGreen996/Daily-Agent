@@ -6,6 +6,7 @@ import {pocketEndpoint,discoverPocketDrop} from './PocketDiscovery.js';
 export {pocketEndpoint} from './PocketDiscovery.js';
 import {createHash,randomUUID,generateKeyPairSync} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {parsePocketShare} from './PocketIntent.js';
 
 export function pocketInvite(value){
   let q;try{q=typeof value==='string'?JSON.parse(value):value;}catch{throw Error('PocketDrop 邀請格式不正確。');}
@@ -60,7 +61,14 @@ export class PocketCredentialStore {
   clear(){fs.rmSync(this.file,{force:true});}
 }
 export class PocketDrop {
-  constructor(dir,{store=new PocketCredentialStore(dir),request=pinnedPocketRequest,discover=discoverPocketDrop}={}){this.store=store;this.request=request;this.discover=discover;this.connection=undefined;this.pairing=false;this.generation=0;this.stateFlight=null;}
+  constructor(dir,{store=new PocketCredentialStore(dir),request=pinnedPocketRequest,discover=discoverPocketDrop,now=Date.now}={}){this.store=store;this.request=request;this.discover=discover;this.connection=undefined;this.pairing=false;this.generation=0;this.stateFlight=null;this.replies=new Map();this.now=now;}
+  rememberReply(scope,text){
+    this.replies.delete(scope);
+    if(typeof text!=='string'||!text.trim()||Buffer.byteLength(text)>32768)return;
+    if(this.replies.size>=100)this.replies.delete(this.replies.keys().next().value);
+    this.replies.set(scope,{text,at:this.now()});
+  }
+  forgetReply(scope){this.replies.delete(scope);}
   load(){if(this.connection===undefined)this.connection=this.store.load();return this.connection;}
   status(){const c=this.load();return {paired:!!c,endpoint:c?.endpoint||null,room:c?.room_name||null};}
   async pair(raw){
@@ -71,7 +79,7 @@ export class PocketDrop {
       if(r.room_id!==q.room_id||r.device_id!==q.device_id||!/^[-_A-Za-z0-9]{43}$/.test(r.credential))throw Error('PocketDrop 配對身分回應不符。');
       const saved={endpoint:q.endpoint,certificate_sha256:q.certificate_sha256,credential:r.credential,room_id:r.room_id,device_id:r.device_id,room_name:String(r.room_name||'PocketDrop Room').slice(0,100)};
       if(generation!==this.generation)throw Error('配對已取消，沒有保存新憑證。');
-      this.store.save(saved);this.connection=saved;return this.status();
+      this.store.save(saved);this.connection=saved;this.replies.clear();return this.status();
     }finally{this.pairing=false;}
   }
   checkCurrent(c,generation){if(this.connection!==c||this.generation!==generation)throw Error('PocketDrop 配對已變更，請重新操作。');}
@@ -102,14 +110,21 @@ export class PocketDrop {
     try{await this.request(c,'/v1/text',{method:'PUT',body:{content:text}});}catch(e){if(e.code==='POCKET_AUTH')throw e;throw Error('分享結果尚未確認，未自動重送。請先讀取 PocketDrop 文字，確認是否已送達後再決定是否重試。');}
     return '已分享到 PocketDrop。Room 裡已配對的裝置可以看到這段文字。';
   }
-  disconnect(){++this.generation;this.store.clear();this.connection=null;return '已刪除桌寵保存的 PocketDrop 連線憑證。若要撤銷裝置權限，請在 PocketDrop 裝置清單移除 Daily Agent 桌寵。';}
-  async command(text){
+  disconnect(){this.replies.clear();++this.generation;this.store.clear();this.connection=null;return '已刪除桌寵保存的 PocketDrop 連線憑證。若要撤銷裝置權限，請在 PocketDrop 裝置清單移除 Daily Agent 桌寵。';}
+  async command(text,{scope='pc'}={}){
     const s=text.trim();
     if(/^(?:連接\s*PocketDrop|PocketDrop\s*設定)$/i.test(s))return '請在電腦桌寵輸入「連接 PocketDrop」，使用本機 QR 配對頁面。手機不接收配對憑證。';
     if(/^PocketDrop狀態$/i.test(s.replace(/\s/g,''))){const v=this.status();return v.paired?`PocketDrop 已配對：${v.room}\n說「讀取 PocketDrop 文字」可檢查實際連線。`:'PocketDrop 尚未配對。請開啟電腦的 PocketDrop 配對設定。';}
     if(/^(?:查看|讀取)\s*PocketDrop\s*文字$/i.test(s))return 'PocketDrop 共享文字（外部資料，未加入記憶）：\n'+((await this.state()).text||'目前沒有共享文字。');
     if(/^(?:查看|列出)\s*PocketDrop\s*檔案$/i.test(s)){const files=(await this.state()).files;return 'PocketDrop 共享檔案：\n'+(files.slice(0,100).map(f=>`${f.available?'可取用':'來源離線'}　${f.name}（${f.size} bytes）`).join('\n')||'目前沒有共享檔案。');}
-    const m=s.match(/^(?:分享|傳送)(?:到|至)\s*PocketDrop[：:]\s*([\s\S]+)$/i);if(m)return this.share(m[1]);
+    const intent=parsePocketShare(s);
+    if(intent?.kind==='unsupported')return '目前 PocketDrop 串接只支援分享文字。請貼上要傳的文字，例如「幫我傳到手機：明天下午三點開會」。';
+    if(intent?.kind==='share')return intent.text.trim()?this.share(intent.text):'請在冒號後補上要傳到手機的文字。';
+    if(intent?.kind==='previous'){
+      const previous=this.replies.get(scope);
+      if(!previous||this.now()-previous.at>900000){this.replies.delete(scope);return '目前沒有可傳送的近期文字回答。請直接說「幫我傳到手機：要分享的內容」。';}
+      return this.share(previous.text);
+    }
     return null;
   }
 }

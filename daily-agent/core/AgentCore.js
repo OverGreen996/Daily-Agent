@@ -241,6 +241,15 @@ export class AgentCore {
     return r.message.content;
   }
   async chat(text, image, document,request={}) {
+    const scope=request.deviceId||'pc';
+    const response=await this.chatInternal(text,image,document,request);
+    if(this.pocketdrop&&!response?.pocketdrop){
+      if(image||document||response?.image||response?.generation||Object.hasOwn(response||{},'image_mode')||response?.no_memory||parseConversationControl(text))this.pocketdrop.forgetReply?.(scope);
+      else this.pocketdrop.rememberReply?.(scope,response?.content);
+    }
+    return response;
+  }
+  async chatInternal(text, image, document,request={}) {
     if(this.states.state==='IDLE')await this.companion.cancel?.();
     if(this.remote&&!request.deviceId)this.remote.notifications.pcInteraction=Date.now();
     if(!image && document?.name?.toLowerCase().endsWith('.ics')){
@@ -250,8 +259,8 @@ export class AgentCore {
     if(!image&&!document&&this.pocketdrop){
       if(request.deviceId&&!this.remote?.devices.list().some(d=>d.id===request.deviceId))throw Error('裝置配對已解除。');
       let pocketReply;
-      try{pocketReply=await this.pocketdrop.command(text);}catch(e){pocketReply='PocketDrop：'+e.message;}
-      if(pocketReply!==null){this.bus.publish('pet_bubble',{text:pocketReply,target_device:request.deviceId,request_id:request.id,activity:'rest'},{transient:true});return {content:pocketReply};}
+      try{pocketReply=await this.pocketdrop.command(text,{scope:request.deviceId||'pc'});}catch(e){pocketReply='PocketDrop：'+e.message;}
+      if(pocketReply!==null){this.bus.publish('pet_bubble',{text:pocketReply,target_device:request.deviceId,request_id:request.id,activity:'rest'},{transient:true});return {content:pocketReply,pocketdrop:true};}
     }
     const originalText=text;
     const imageSession=this.imageSessionFor(request);
