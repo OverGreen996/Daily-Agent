@@ -1,3 +1,4 @@
+import {XMLParser} from 'fast-xml-parser';
 import { SearchProvider } from "./SearchProvider.js";
 export class SearXNGProvider extends SearchProvider {
   constructor({ endpoint = "", fetcher = fetch, now = () => new Date() } = {}) {
@@ -18,6 +19,23 @@ export class SearXNGProvider extends SearchProvider {
   }
   close() {
     this.cancel();
+  }
+  async newsFallback(query,limit,undated=[]){
+    const keywords=query.split(/[，。；\n]/)[0].replace(/^(?:請)?(?:幫我|替我)?(?:搜尋|查詢|上網查|找一下|找|查)?\s*/,'').replace(/今天|今日|最新|頭條|新聞|有什麼|有哪些|的|呢|？/g,' ').trim()||'台灣';
+    const url=new URL('https://news.google.com/rss/search');url.search=new URLSearchParams({q:keywords+' when:1d',hl:'zh-TW',gl:'TW',ceid:'TW:zh-Hant'});
+    try {
+      const response=await this.fetcher(url,{redirect:'error',signal:AbortSignal.any([this.controller.signal,AbortSignal.timeout(8000)])});
+      if(!response.ok)throw Error('RSS unavailable');
+      const xml=await response.text();if(xml.length>2000000||/<!DOCTYPE/i.test(xml))throw Error('Invalid feed');
+      const entries=new XMLParser({ignoreAttributes:true,processEntities:false}).parse(xml).rss?.channel?.item||[];
+      const day=d=>new Date(d).toLocaleDateString('en-CA');const now=+this.now();
+      const results=(Array.isArray(entries)?entries:[entries]).filter(r=>{try{const u=new URL(r.link),date=Date.parse(r.pubDate);return ['https:','http:'].includes(u.protocol)&&!u.username&&!u.password&&date<=now&&now-date<=86400000;}catch{return false;}})
+        .sort((a,b)=>Date.parse(b.pubDate)-Date.parse(a.pubDate)).slice(0,Math.max(1,Math.min(3,limit)))
+        .map(r=>({title:String(r.title).slice(0,300),url:r.link,date:r.pubDate,source:String(r.source||'Google News'),body:String(r.title).slice(0,600),coverage:'headline-only',freshness:day(r.pubDate)===day(this.now())?'today':'last-24-hours-not-today',retrieved_at:new Date().toISOString()}));
+      if(results.length)return {query,provider:'Google News RSS（SearXNG 備援）',results,notice:'僅取得新聞標題與來源提供的日期，未讀全文；只能整理標題，不可補寫細節。'};
+    }catch(e){if(this.controller.signal.aborted)throw new DOMException('查詢已取消','AbortError');}
+    if(undated.length)return {query,provider:'SearXNG（日期待確認）',results:undated.slice(0,Math.max(1,Math.min(3,limit))).map(r=>({...r,freshness:'unverified-date',coverage:'search-excerpt'})),notice:'以下日期尚未核實，不可稱為今日新聞；仍應提供標題與連結供使用者查看。'};
+    throw Error('已連上 SearXNG，但新聞搜尋與備援未取得可核對日期的報導。請縮小地區或主題。');
   }
   async search(query, { limit = 3 } = {}) {
     if (!this.endpoint)
@@ -76,6 +94,10 @@ export class SearXNGProvider extends SearchProvider {
         coverage: "search-excerpt",
         retrieved_at: new Date().toISOString(),
       }));
+    if(!results.length && news){
+      const undated=(data.results||[]).filter(r=>{try{const u=new URL(r.url);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password&&!r.publishedDate&&!r.pubdate&&r.title;}catch{return false;}}).map(r=>({title:String(r.title).slice(0,300),url:r.url,body:String(r.content||'').slice(0,3000),source:new URL(r.url).hostname,date:null}));
+      return this.newsFallback(query,limit,undated);
+    }
     if(!results.length) throw Error(today && news
       ? '已連上 SearXNG 並搜尋新聞，但這次結果中沒有可核對為今天發布的報導。這不代表今天沒有新聞；日期不明及舊文章已略過。'
       : '已連上 SearXNG，但這次沒有取得可用結果。');

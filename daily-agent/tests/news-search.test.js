@@ -32,3 +32,13 @@ test('plain news replies always include missing source URLs once and preserve co
   assert.equal(withSearchSources(text,sources),text);
 });
 
+
+test('undated local news uses dated RSS headlines',async()=>{
+ const now=new Date('2026-09-28T06:00:00Z');let calls=0;
+ const p=new SearXNGProvider({endpoint:'http://localhost:8888',now:()=>now,fetcher:async url=>{calls++;return url.hostname==='localhost'?{ok:true,json:async()=>({results:[{title:'台中消息',url:'https://example.com/local'}]})}:{ok:true,text:async()=>'<rss><channel><item><title>台中新聞</title><link>https://example.com/today</link><pubDate>Mon, 28 Sep 2026 05:00:00 GMT</pubDate><source>報社</source></item></channel></rss>'};}});
+ const r=await p.search('今天台中頭條新聞');assert.equal(calls,2);assert.equal(r.results[0].coverage,'headline-only');assert.equal(r.results[0].freshness,'today');
+});
+test('RSS outage keeps safe undated links, cancellation stops fallback',async()=>{
+ const p=new SearXNGProvider({endpoint:'http://localhost:8888',fetcher:async url=>{if(url.hostname!=='localhost')throw Error('offline');return {ok:true,json:async()=>({results:[{title:'地方新聞',url:'https://example.com/a'},{title:'bad',url:'javascript:bad'}]})};}});
+ const r=await p.search('今天台中新聞');assert.equal(r.results.length,1);assert.equal(r.results[0].freshness,'unverified-date');p.controller.abort();await assert.rejects(p.newsFallback('新聞',3),{name:'AbortError'});
+});

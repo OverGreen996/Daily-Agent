@@ -80,7 +80,7 @@ export function createAgent(overrides = {}) {
   const memory = new MemoryPalace(
     path.join(config.dataDir, "palace.sqlite"),
     embedding,
-    { flushAt: config.flushAt },
+    { flushAt: config.flushAt, timeZone: config.timeZone },
   );
   if(!config.tokenizer.fallback){const update=memory.db.prepare('UPDATE messages SET tokens=? WHERE id=?');for(const m of memory.working.list())update.run(tokens(m.content),m.id);}
   memory.pins.seedDefaults([

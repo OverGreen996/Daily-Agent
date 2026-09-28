@@ -191,10 +191,7 @@ export class RemoteGateway {
       if (req.method === "GET" && url.pathname === "/v1/events")
         return send(
           200,
-          remote.notifications.read(
-            device.id,
-            Math.max(0, Number(url.searchParams.get("after")) || 0),
-          ),
+          {...remote.notifications.read(device.id,Math.max(0,Number(url.searchParams.get("after"))||0)),reminders:this.agent.memory?.personal?.db.prepare('SELECT rowid AS seq,text FROM assistant_notices WHERE rowid>? AND created>? ORDER BY rowid LIMIT 30').all(Math.max(0,Number(url.searchParams.get('reminderAfter'))||0),Date.now()-86400000)||[]},
         );
       if (req.method === "POST" && url.pathname === "/v1/notification") {
         const event = remote.notifications.receive(device.id, data);

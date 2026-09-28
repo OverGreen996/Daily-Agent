@@ -10,7 +10,7 @@ public final class Policies {
     return jobRequest?FailureAction.FAIL_JOB:FailureAction.KEEP_JOB;
   }
   public static float petScale(float value){return Float.isFinite(value)?Math.max(0.40f,Math.min(2.0f,value)):1f;}
-  public static boolean needsLocation(String text){return text!=null&&text.matches("(?is).*(天氣|氣溫|會下雨|會不會下雨|附近|當地|這裡|所在地|目前位置|我在哪|weather|nearby|near me).*");}
+  public static boolean needsLocation(String text){return text!=null&&text.matches("(?is).*(今天摘要|出門摘要|天氣|氣溫|會下雨|會不會下雨|附近|當地|這裡|所在地|目前位置|我在哪|weather|nearby|near me).*");}
   public static final class TouchIntent {
     public boolean down,dragged,pinched,held;
     public void begin(){down=true;dragged=false;pinched=false;held=false;}

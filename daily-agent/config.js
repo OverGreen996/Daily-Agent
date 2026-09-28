@@ -8,6 +8,7 @@ export const config = {
   version:JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version,
   port: Number(process.env.DAILY_PORT || 3210),
   dataDir: process.env.DAILY_DATA || path.join(root, "data"),
+  timeZone: process.env.DAILY_TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone,
   modelUrl: process.env.OLLAMA_HOST_URL || "http://127.0.0.1:11435",
   imageRuntimeDir: process.env.DAILY_COMFY_DIR || path.resolve(root, "../.daily-runtime/ComfyUI_windows_portable"),
   imageCheckpoint: process.env.DAILY_IMAGE_CHECKPOINT || "NoobAI-XL-v1.1.safetensors",

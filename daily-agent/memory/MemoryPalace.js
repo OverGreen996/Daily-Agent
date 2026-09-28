@@ -1,6 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import {PinConflicts} from './PinConflicts.js';
+import {PersonalMemory} from './PersonalMemory.js';
 // Conservative budget, calibrated against runtime prompt_eval_count in AgentCore.
 let nativeCounter;
 export const setTokenCounter=counter=>{nativeCounter=counter;};
@@ -352,7 +353,7 @@ export class MemoryRetriever {
   }
 }
 export class MemoryPalace {
-  constructor(file, embedding, { flushAt = 14336, summarize = null } = {}) {
+  constructor(file, embedding, { flushAt = 14336, summarize = null, timeZone, now } = {}) {
     this.db = new DatabaseSync(file);
     this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
       CREATE TABLE IF NOT EXISTS messages(id TEXT PRIMARY KEY,time TEXT,role TEXT,content TEXT,topic TEXT,tokens INTEGER,extra TEXT,archived INTEGER);
@@ -375,6 +376,7 @@ export class MemoryPalace {
     this.pins = new PermanentPins(this.db);
     this.entities = new EntityMemory(this.db);
     this.habits = new HabitMemory(this.db);
+    this.personal = new PersonalMemory(this.db,{timeZone,now});
     this.indexer = new MemoryIndexer(this.db, embedding);
     this.retriever = new MemoryRetriever(this);
   }

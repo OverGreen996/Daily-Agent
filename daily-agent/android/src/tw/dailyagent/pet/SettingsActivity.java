@@ -34,6 +34,9 @@ public final class SettingsActivity extends Activity {
     boolean enabled=getSharedPreferences("pet",0).getBoolean("notifications",false);String access=Settings.Secure.getString(getContentResolver(),"enabled_notification_listeners");boolean granted=access!=null&&access.contains(getPackageName()+"/");
     label("手機通知："+(enabled&&granted?"觀察中；只有 App 名稱":enabled?"等待 Android 授權":"已關閉")+"\n普通通知合併成安靜泡泡，過濾重複、常駐與桌寵自己的通知。電腦通知需另外在 PC 授權。",14);
     action(enabled&&granted?"關閉通知偵測":"開啟通知偵測／授權",()->command(enabled&&granted?"關閉通知偵測":"開啟通知偵測"));
+    label("助理提醒：電腦需保持運行，手機需允許系統通知。提醒只出現在通知列，不會自動展開聊天。",14);
+    action("助理提醒通知授權",()->{if(android.os.Build.VERSION.SDK_INT>=33&&checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS},20);else startActivity(new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,getPackageName()));});
+    action("助理功能與指令",()->command("助理說明"));action("今天摘要",()->command("今天摘要"));action("查看待辦",()->command("查看待辦"));
     action("更新手機位置",()->command("更新手機位置"));action("查看歷史對話",()->command("查看歷史對話"));action("使用說明",()->command("使用說明"));action("解除配對",()->new AlertDialog.Builder(this).setMessage("解除這支手機的配對？電腦的記憶宮殿會保留。").setPositiveButton("解除",(d,w)->command("解除配對")).setNegativeButton("取消",null).show());
     action("返回聊天",()->command("查看連線"));action("關閉桌寵",()->{PetService.closePet(this);finishAndRemoveTask();});
   }

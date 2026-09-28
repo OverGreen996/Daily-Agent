@@ -84,7 +84,7 @@ public final class AgentClient {
         if(!state.equals("running")){JSONObject picture=result.optJSONObject("image");if(picture!=null)downloadGenerated(picture);pending=null;job="";busy=false;savePending();if(state.equals("error"))say("這次沒有完成："+result.optString("error"),false);else{JSONArray sources=result.optJSONArray("sources");if(sources!=null&&sources.length()>0){StringBuilder s=new StringBuilder(partial+"\n\n來源：");for(int i=0;i<Math.min(5,sources.length());i++)s.append('\n').append(sources.getJSONObject(i).optString("url"));partial=s.toString();}say(partial,true);}}
       }
       jobRequest=false;
-      if(now-lastEvents>=15000){JSONObject events=request(base,"/v1/events?after="+cursor,null,token);long next=events.getLong("cursor");if(next<cursor){cursor=0;events=request(base,"/v1/events?after=0",null,token);next=events.getLong("cursor");}JSONArray list=events.getJSONArray("events");for(int i=0;i<list.length();i++){JSONObject e=list.getJSONObject(i);notices.add(e.optString("source")+":"+e.getLong("seq"),(e.optString("source").equals("pc")?"電腦的":"手機的")+e.getString("app"),now);}cursor=next;lastEvents=now;saveConnection();}
+      if(now-lastEvents>=15000){JSONObject events=request(base,"/v1/events?after="+cursor+"&reminderAfter="+context.getSharedPreferences("pet",0).getLong("reminder-"+deviceId,0),null,token);long next=events.getLong("cursor");if(next<cursor){cursor=0;events=request(base,"/v1/events?after=0",null,token);next=events.getLong("cursor");}JSONArray list=events.getJSONArray("events");for(int i=0;i<list.length();i++){JSONObject e=list.getJSONObject(i);notices.add(e.optString("source")+":"+e.getLong("seq"),(e.optString("source").equals("pc")?"電腦的":"手機的")+e.getString("app"),now);}JSONArray reminders=events.optJSONArray("reminders");if(reminders!=null)for(int ri=0;ri<reminders.length();ri++){JSONObject reminder=reminders.getJSONObject(ri);showReminder(reminder.getString("text"),reminder.getInt("seq"));context.getSharedPreferences("pet",0).edit().putLong("reminder-"+deviceId,reminder.getLong("seq")).apply();}cursor=next;lastEvents=now;saveConnection();}
       if(!outbound.isEmpty()){JSONObject n=outbound.peek();if(now-n.optLong("queuedAt")<120000){JSONObject payload=new JSONObject().put("id",n.getString("id")).put("app",n.getString("app"));request(base,"/v1/notification",payload,token);}outbound.removeFirst();}
       if(!busy&&now-lastAppearance>=60000){try{if(checkAppearance())connection="已連線 · 寵物外觀已更新";}catch(Exception e){if(e instanceof ApiError&&((ApiError)e).status==401)throw e;connection="已連線 · 外觀更新失敗，原外觀保留";}}
       online=true;failures=0;changed();
@@ -94,6 +94,13 @@ public final class AgentClient {
         if(action==Policies.FailureAction.EXPIRE_PAIRING||action==Policies.FailureAction.FAIL_JOB){pending=null;job="";busy=false;try{savePending();}catch(Exception ignored){}say(e.getMessage(),false);}}
       changed();
     }
+  }
+  private void showReminder(String message,int id){
+    android.app.NotificationManager manager=(android.app.NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+    if(Build.VERSION.SDK_INT>=33&&context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)return;
+    if(Build.VERSION.SDK_INT>=26)manager.createNotificationChannel(new android.app.NotificationChannel("assistant-reminders","助理行程提醒",android.app.NotificationManager.IMPORTANCE_DEFAULT));
+    android.app.Notification.Builder builder=Build.VERSION.SDK_INT>=26?new android.app.Notification.Builder(context,"assistant-reminders"):new android.app.Notification.Builder(context);
+    manager.notify("assistant-reminder",id,builder.setSmallIcon(android.R.drawable.ic_dialog_info).setContentTitle("露米助理提醒").setContentText(message).setStyle(new android.app.Notification.BigTextStyle().bigText(message)).setAutoCancel(true).build());
   }
   public synchronized void close(){if(closed)return;closed=true;main.removeCallbacksAndMessages(null);worker.execute(()->{try{if(paired())request(base,"/v1/session",new JSONObject().put("connected",false),token);}catch(Exception ignored){}worker.shutdown();});}
   private void downloadGenerated(JSONObject picture)throws Exception {

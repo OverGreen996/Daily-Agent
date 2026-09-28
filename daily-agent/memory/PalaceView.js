@@ -1,7 +1,7 @@
 export function palaceView(memory,query='',page=1){
   const search=query.toLowerCase().slice(0,200),books=memory.books.all().filter(b=>!search||JSON.stringify(b).toLowerCase().includes(search));
   page=Math.max(1,Math.min(10000,Number(page)||1));
-  return {total:books.length,page,books:books.slice((page-1)*12,page*12),pins:memory.pins.all().filter(p=>!search||p.text.toLowerCase().includes(search)).slice(0,40),conflicts:memory.pins.conflicts.list(),habits:memory.habits.confirmed()};
+  return {organizer:memory.personal?.organizer?['task','project','meeting','habit'].flatMap(k=>memory.personal.organizer.rows(k)).filter(r=>!search||JSON.stringify(r).toLowerCase().includes(search)):[],total:books.length,page,books:books.slice((page-1)*12,page*12),pins:memory.pins.all().filter(p=>!search||p.text.toLowerCase().includes(search)).slice(0,40),conflicts:memory.pins.conflicts.list(),habits:memory.habits.confirmed(),profile:memory.personal?.profile().filter(p=>!search||JSON.stringify(p).toLowerCase().includes(search))||[],schedule:memory.personal?.list().filter(e=>!search||JSON.stringify(e).toLowerCase().includes(search))||[],timeZone:memory.personal?.timeZone};
 }
 export function palaceBook(memory,id,offset=0){
   const book=memory.books.get(id);if(!book)return null;
