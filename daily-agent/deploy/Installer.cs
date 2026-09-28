@@ -2,33 +2,63 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Diagnostics;
+using System.Reflection;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 class Installer {
+  static void Extract(string stage) {
+    Directory.CreateDirectory(stage);
+    string zip=Path.Combine(stage,"package.zip");
+    var assembly=Assembly.GetExecutingAssembly();
+    using(var input=assembly.GetManifestResourceStream("DailyAgent.Package")) {
+      if(input==null)throw new Exception("安裝檔不完整，請重新下載最新版 DailyAgent-Setup.exe。");
+      using(var output=File.Create(zip))input.CopyTo(output);
+    }
+    string expected;
+    using(var input=assembly.GetManifestResourceStream("DailyAgent.Hash"))
+    using(var reader=new StreamReader(input))expected=reader.ReadToEnd().Trim().Split(' ')[0];
+    using(var h=SHA256.Create())using(var s=File.OpenRead(zip))
+      if(!String.Equals(BitConverter.ToString(h.ComputeHash(s)).Replace("-",""),expected,StringComparison.OrdinalIgnoreCase))throw new Exception("安裝檔校驗失敗，請重新下載。尚未安裝或執行程式。");
+    string payload=Path.Combine(stage,"payload");
+    using(var archive=ZipFile.OpenRead(zip))foreach(var e in archive.Entries)
+      if(!Path.GetFullPath(Path.Combine(payload,e.FullName)).StartsWith(payload+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))throw new Exception("安裝檔包含不安全的路徑。");
+    ZipFile.ExtractToDirectory(zip,payload);
+    File.Delete(zip);
+  }
+  static void Install(string stage,string destination) {
+    Extract(stage);
+    var start=new ProcessStartInfo("powershell.exe","-NoProfile -ExecutionPolicy Bypass -File \""+Path.Combine(stage,"payload","Install-DailyAgent.ps1")+"\" -Destination \""+destination+"\"");
+    start.UseShellExecute=false;start.CreateNoWindow=true;start.RedirectStandardError=true;
+    using(var p=Process.Start(start)){string error=p.StandardError.ReadToEnd();p.WaitForExit();if(p.ExitCode!=0)throw new Exception(error);}
+  }
   [STAThread] static int Main(string[] args) {
+    // Test extraction without installing, creating shortcuts or downloading models.
+    if(args.Length==2&&args[0]=="--extract-only") {
+      try{if(Directory.Exists(args[1]))return 2;Extract(Path.GetFullPath(args[1]));return 0;}catch{return 1;}
+    }
     Application.EnableVisualStyles();
-    try {
-      string root=AppDomain.CurrentDomain.BaseDirectory;
-      string zip=Path.Combine(root,"DailyAgent-Windows.zip");
-      string expected=File.ReadAllText(Path.Combine(root,"DailyAgent-Windows.zip.sha256")).Trim().Split(' ')[0];
-      using(var h=SHA256.Create())using(var s=File.OpenRead(zip)) {
-        if(!String.Equals(BitConverter.ToString(h.ComputeHash(s)).Replace("-",""),expected,StringComparison.OrdinalIgnoreCase)) throw new Exception("Package checksum mismatch.");
-      }
-      string destination=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DailyAgent");
-      if(MessageBox.Show("將日常桌寵安裝至：\n"+destination+"\n\n安裝完成可一鍵下載模型並配置本地環境。","日常桌寵安裝",MessageBoxButtons.OKCancel)!=DialogResult.OK)return 0;
+    string destination=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DailyAgent");
+    var form=new Form{Text="日常桌寵：一鍵安裝",Width=610,Height=340,StartPosition=FormStartPosition.CenterScreen,FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false};
+    var label=new Label{Left=24,Top=20,Width=550,Height=115,Text="只需這一個安裝檔，不用解壓縮或輸入指令。\n\n安裝位置："+destination+"\n\n首次完整配置約需 60 GB SSD 空間與網路。\n適用 Windows x64、NVIDIA 顯卡；目前配置以 12 GB 顯存為基準。"};
+    var configure=new CheckBox{Left=24,Top=145,Width=550,Height=38,Checked=true,Text="安裝後自動下載模型、語音、生圖與搜尋所需工具（建議）"};
+    var progress=new ProgressBar{Left=24,Top=200,Width=550,Height=22,Style=ProgressBarStyle.Marquee,Visible=false};
+    var button=new Button{Left=385,Top=242,Width=190,Height=38,Text="一鍵安裝並配置"};
+    configure.CheckedChanged+=(s,e)=>button.Text=configure.Checked?"一鍵安裝並配置":"只安裝程式";
+    bool busy=false;
+    form.FormClosing+=(s,e)=>{if(busy)e.Cancel=true;};
+    button.Click+=async(s,e)=>{
+      busy=true;button.Enabled=false;configure.Enabled=false;progress.Visible=true;
       string stage=Path.Combine(Path.GetTempPath(),"DailyAgent-Setup-"+Guid.NewGuid().ToString("N"));
-      using(var archive=ZipFile.OpenRead(zip))foreach(var e in archive.Entries) {
-        if(!Path.GetFullPath(Path.Combine(stage,e.FullName)).StartsWith(stage+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase))throw new Exception("Unsafe ZIP entry");
-      }
-      ZipFile.ExtractToDirectory(zip,stage);
-      var start=new ProcessStartInfo("powershell.exe","-NoProfile -ExecutionPolicy Bypass -File \""+Path.Combine(stage,"Install-DailyAgent.ps1")+"\" -Destination \""+destination+"\"");
-      start.UseShellExecute=false;start.CreateNoWindow=true;start.RedirectStandardError=true;
-      using(var p=Process.Start(start)){string error=p.StandardError.ReadToEnd();p.WaitForExit();if(p.ExitCode!=0)throw new Exception(error);}
-      var setupNow=MessageBox.Show("安裝完成。現在一鍵配置完整本地環境嗎？\n\n自動下載聊天、記憶、語音、生圖模型、瀏覽器、搜尋與手機連線工具。全新安裝請預留約 60 GB SSD 空間。已有資源會沿用，失敗可重跑。\n\nWindows 可能要求管理員授權或重開機；Cloudflare 帳號與網域由你自己設定。\n選「否」可稍後雙擊桌面的 Daily Agent Setup 捷徑。", "Daily Agent 一鍵完整配置",MessageBoxButtons.YesNo,MessageBoxIcon.Question);
-      if(setupNow==DialogResult.Yes) {
-        Process.Start(new ProcessStartInfo("powershell.exe","-NoProfile -NoExit -ExecutionPolicy Bypass -File \""+Path.Combine(destination,"Setup-DailyAgent.ps1")+"\""){UseShellExecute=true,WorkingDirectory=destination});
-      } else Process.Start("explorer.exe",destination);
-      return 0;
-    }catch(Exception e){MessageBox.Show(e.Message,"Daily Agent Setup failed",MessageBoxButtons.OK,MessageBoxIcon.Error);return 1;}
+      try{
+        label.Text="正在校驗並安裝程式，請稍候…\n\n安裝後將開啟中文配置進度視窗。\n下載中斷或重開機後，雙擊桌面「Daily Agent Setup」即可繼續。\n\n手機配對與 Cloudflare 帳號會在後續自行設定。";
+        await Task.Run(()=>Install(stage,destination));
+        if(configure.Checked)Process.Start(new ProcessStartInfo("powershell.exe","-NoProfile -NoExit -ExecutionPolicy Bypass -File \""+Path.Combine(destination,"Setup-DailyAgent.ps1")+"\""){UseShellExecute=true,WorkingDirectory=destination});
+        else MessageBox.Show("安裝完成。要下載模型時，雙擊桌面「Daily Agent Setup」。","日常桌寵");
+        busy=false;form.Close();
+      }catch(Exception error){MessageBox.Show("安裝未完成：\n"+error.Message+"\n\n請重試；既有個人資料會保留。","日常桌寵安裝",MessageBoxButtons.OK,MessageBoxIcon.Error);}
+      finally{busy=false;button.Enabled=true;configure.Enabled=true;progress.Visible=false;try{Directory.Delete(stage,true);}catch{}}
+    };
+    form.Controls.AddRange(new Control[]{label,configure,progress,button});Application.Run(form);return 0;
   }
 }

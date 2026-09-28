@@ -12,7 +12,21 @@ foreach($file in $manifest.files){
 }
 $destinationRoot=[IO.Path]::GetFullPath($Destination)
 $release=Join-Path $destinationRoot ('releases\'+$manifest.version)
-if(Test-Path -LiteralPath $release){throw 'This release already exists. Use Launch-DailyAgent.ps1 to start it.'}
+if(Test-Path -LiteralPath $release){
+  $pointer=Join-Path $destinationRoot 'current.json'
+  if((Test-Path -LiteralPath $pointer) -and (Test-Path -LiteralPath (Join-Path $destinationRoot 'Setup-DailyAgent.ps1'))){
+    $installed=Get-Content -LiteralPath $pointer -Raw -Encoding UTF8 | ConvertFrom-Json
+    if($installed.current -eq $manifest.version){
+      foreach($file in $manifest.files){
+        $existing=Join-Path $release $file.path
+        if(!(Test-Path -LiteralPath $existing) -or (File-SHA256 $existing) -ne $file.sha256){throw 'Installed files need repair. Keep your data and use a newer installer.'}
+      }
+      Write-Output 'This version is already installed and verified. Continue model configuration.'
+      return
+    }
+  }
+  throw 'This release directory already exists but is not the active complete installation. Keep your data and use a newer installer.'
+}
 New-Item -ItemType Directory -Force (Join-Path $destinationRoot 'releases'),(Join-Path $destinationRoot 'data'),(Join-Path $destinationRoot 'runtime') | Out-Null
 # Copy only verified files. Runtime caches and Memory Palace live outside releases.
 New-Item -ItemType Directory -Path $release | Out-Null

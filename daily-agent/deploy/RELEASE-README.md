@@ -2,10 +2,11 @@
 
 ## 電腦一鍵安裝與配置
 
-1. 完整解壓縮 DailyAgent-Installer.zip，保留所有檔案在同一資料夾。
-2. 雙擊 DailyAgent-Setup.exe，安裝到自己的電腦。
-3. 安裝完成選「是」，自動下載並配置聊天、記憶、語音、生圖模型與必要工具。
-4. 全新配置預留約 60 GB SSD 空間。中斷或重開機後，雙擊桌面 Daily Agent Setup 繼續；平時用 Daily Agent 開啟桌寵。
+1. 只下載 DailyAgent-Setup.exe，雙擊開啟。
+2. 按「一鍵安裝並配置」，自動安裝程式並下载模型與所需工具。
+3. 完成後開啟桌寵；中斷或重開機後，雙擊桌面 Daily Agent Setup 繼續。平時用 Daily Agent 開啟。
+
+不用另外下載 ZIP 或 .sha256，不用輸入指令。安裝檔內含程式與 SHA-256 校驗資料；模型另外自動下載，首次預留約 60 GB SSD 空間。DailyAgent-Installer.zip 是 Setup 加中文教學的備用包。
 
 目標：Windows x64、RTX 3080 Ti 12 GB、適用的 NVIDIA 驅動。Node 已附，ComfyUI 自帶 Python。Docker／WSL 可能要求管理員授權、接受條款或重開機。Cloudflare 帳號、網域與登入由每位使用者自己設定，不會使用作者的私人連線。
 

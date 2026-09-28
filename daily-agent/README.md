@@ -2,6 +2,12 @@
 
 Windows 本機日常 AI 夥伴。原有 Framecraft 檔案保留。這個版本不含陪玩、遊戲辨識或自動遊戲。
 
+## 從零安裝：只下載一個檔案
+
+[下載 DailyAgent-Setup.exe](https://github.com/OverGreen996/Daily-Agent/releases/latest/download/DailyAgent-Setup.exe)，雙擊後按「一鍵安裝並配置」。不需要另找 ZIP、.sha256 或輸入 PowerShell 指令。程式自動下載本地模型及依賴，完成後啟動桌寵。首次建議預留 60 GB SSD 空間；目前配置以 Windows x64／NVIDIA 12 GB 顯存為基準。系統授權、Docker 條款或重開機依畫面處理。
+
+中斷後雙擊桌面 **Daily Agent Setup** 繼續；平時用 **Daily Agent**。手機、PocketDrop 與自己的 Cloudflare 帳號可稍後設定。[完整中文教學](deploy/使用教學.md)。
+
 ## 本地生圖
 
 第一次使用先在專案根目錄執行 `powershell -ExecutionPolicy Bypass -File .\Setup-ImageGeneration.ps1`。說「動漫模式」會切換到 NoobAI XL V-Pred，以 v-prediction、zero-terminal-SNR、Euler 生成 1024 原圖，再用 RealESRGAN 動漫超解析縮放成 1536 圖片；說「真人模式」會切換到 PornMaster Pro SDXL V7，以標準 SDXL 攝影提示詞、Euler a 與 SGM Uniform 生成寫真。說「結束生圖」回到一般聊天。系統會保存目前對話與記憶，卸載 Qwen，圖片完成後關閉生圖後端並恢復 Qwen。原圖保存在 `daily-agent/data/generated-images`，泡泡內的縮圖可點擊開啟。
