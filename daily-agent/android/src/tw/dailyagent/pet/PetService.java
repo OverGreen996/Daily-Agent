@@ -12,6 +12,15 @@ import android.widget.*;
 public final class PetService extends Service {
   public static PetService current;
   public static boolean settingsVisible=false;
+  public static boolean closing=false;
+  public static void closePet(Context context){
+    closing=true;PetActivity.pendingAction=null;
+    PetService service=current;
+    if(service!=null){service.removeOverlay();if(service.client!=null)service.client.observer=null;service.stopForeground(STOP_FOREGROUND_REMOVE);service.stopSelf();}
+    context.stopService(new Intent(context,PetService.class));
+    ActivityManager manager=context.getSystemService(ActivityManager.class);
+    if(manager!=null)for(ActivityManager.AppTask task:manager.getAppTasks())task.finishAndRemoveTask();
+  }
   public AgentClient client;
   private WindowManager windows;
   private PetView pet;private BubbleView bubble;
@@ -26,10 +35,11 @@ public final class PetService extends Service {
     if(Build.VERSION.SDK_INT>=34)startForeground(1,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING);else startForeground(1,notification);
     windows=getSystemService(WindowManager.class);client=new AgentClient(this);client.observer=this::refresh;refresh();
   }
-  @Override public int onStartCommand(Intent intent,int flags,int id){if(intent!=null&&"stop".equals(intent.getAction())){stopSelf();if(PetActivity.visible!=null)PetActivity.visible.finish();}return START_NOT_STICKY;}
+  @Override public int onStartCommand(Intent intent,int flags,int id){if(closing||(intent!=null&&"stop".equals(intent.getAction())))closePet(this);return START_NOT_STICKY;}
   @Override public IBinder onBind(Intent i){return null;}
   public boolean overlayEnabled(){return getSharedPreferences("pet",0).getBoolean("overlay",false)&&Settings.canDrawOverlays(this);}
   public void refresh(){
+    if(closing){removeOverlay();return;}
     if(PetActivity.visible!=null||settingsVisible){removeOverlay();if(PetActivity.visible!=null)PetActivity.visible.render();return;}
     if(!overlayEnabled()){removeOverlay();return;}
     if(pet==null){
@@ -42,11 +52,10 @@ public final class PetService extends Service {
         public void scale(float factor){int oldW=petParams.width,oldH=petParams.height;petScale=Policies.petScale(petScale*factor);petParams.width=(int)(dp(112)*petScale);petParams.height=(int)(dp(138)*petScale);petParams.x+=(oldW-petParams.width)/2;petParams.y+=oldH-petParams.height;clampPet();windows.updateViewLayout(pet,petParams);placeBubble();}
         public void end(){pet.endMovement();getSharedPreferences("pet",0).edit().putInt("petX",petParams.x).putInt("petY",petParams.y).putFloat("scale",petScale).apply();}
       }));
-      bubble=new BubbleView(this,null);bubbleParams=new WindowManager.LayoutParams(Math.min(dp(320),screen.x-dp(24)),WindowManager.LayoutParams.WRAP_CONTENT,WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE|WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,PixelFormat.TRANSLUCENT);bubbleParams.gravity=Gravity.TOP|Gravity.LEFT;
-      try{windows.addView(pet,petParams);windows.addView(bubble,bubbleParams);}catch(Exception e){removeOverlay();return;}
+      try{windows.addView(pet,petParams);}catch(Exception e){removeOverlay();return;}
     }
-    pet.setBusy(client.busy);pet.react(client.text);bubble.setGeneratedImage(client.generatedImage);bubble.setHistoryMode(client.historyMode);bubble.render(client.historyMode&&!client.history.isEmpty()?client.history:client.text,client.connection);
-    bubble.post(this::placeBubble);
+    pet.setBusy(client.busy);pet.react(client.text);
+    // Incoming messages update the pet only; chat is opened explicitly by a tap.
   }
   private Point screen(){Point point=new Point();windows.getDefaultDisplay().getSize(point);return point;}
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}

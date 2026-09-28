@@ -19,11 +19,12 @@ public final class BubbleView extends LinearLayout {
   private java.io.File pictureFile;
   private android.graphics.Bitmap pictureBitmap;
   private final Handler handler=new Handler(Looper.getMainLooper());
-  private boolean historyMode=false;
+  private boolean historyMode=false,collapsed=false;
   private final Runnable expire=()->{if(!historyMode)setVisibility(GONE);};
-  public void reopen(){setVisibility(VISIBLE);armExpiry();}
+  public void collapse(){collapsed=true;handler.removeCallbacks(expire);setVisibility(GONE);}
+  public void reopen(){collapsed=false;setVisibility(VISIBLE);armExpiry();}
   private void armExpiry(){handler.removeCallbacks(expire);if(!historyMode)handler.postDelayed(expire,15*60*1000L);}
-  public void setHistoryMode(boolean value){if(historyMode==value)return;historyMode=value;reopen();}
+  public void setHistoryMode(boolean value){if(historyMode==value)return;historyMode=value;if(!collapsed)reopen();}
   private String target="";private int shown=0;
   private final Runnable typing=new Runnable(){public void run(){if(shown>=target.length())return;boolean bottom=scroll.getScrollY()+scroll.getHeight()>=scroll.getChildAt(0).getHeight()-dp(24);shown=Math.min(target.length(),shown+Math.max(5,(target.length()-shown)/18));if(shown<target.length()&&shown>0&&Character.isHighSurrogate(target.charAt(shown-1)))shown++;content.setText(target.substring(0,shown));if(bottom)scroll.post(()->scroll.fullScroll(View.FOCUS_DOWN));handler.postDelayed(this,20);}};
   public BubbleView(Context c,Send send){super(c);sender=send;setOrientation(VERTICAL);setPadding(dp(18),dp(14),dp(18),dp(14));setElevation(dp(8));GradientDrawable bg=new GradientDrawable();bg.setColor(Color.argb(239,252,252,249));bg.setCornerRadius(dp(24));bg.setStroke(dp(1),0xAAD9E5E1);setBackground(bg);
@@ -36,7 +37,7 @@ public final class BubbleView extends LinearLayout {
   }
   public void setGeneratedImage(java.io.File file){if(java.util.Objects.equals(file,pictureFile))return;pictureFile=file;picture.setImageDrawable(null);if(pictureBitmap!=null){pictureBitmap.recycle();pictureBitmap=null;}if(file!=null)pictureBitmap=GeneratedImageView.decode(file,640);picture.setImageBitmap(pictureBitmap);picture.setVisibility(pictureBitmap==null?GONE:VISIBLE);}
   private int dp(int n){return Math.round(n*getResources().getDisplayMetrics().density);}
-  public void render(String text,String connection){status.setText(connection);if(text.equals(target))return;reopen();handler.removeCallbacks(typing);if(!text.startsWith(target)){shown=0;content.setText("");scroll.scrollTo(0,0);}target=text;handler.post(typing);}
+  public void render(String text,String connection){status.setText(connection);if(text.equals(target))return;if(!collapsed)reopen();handler.removeCallbacks(typing);if(!text.startsWith(target)){shown=0;content.setText("");scroll.scrollTo(0,0);}target=text;handler.post(typing);}
   @Override protected void onDetachedFromWindow(){handler.removeCallbacks(expire);handler.removeCallbacks(typing);super.onDetachedFromWindow();}
   @Override protected void onAttachedToWindow(){super.onAttachedToWindow();handler.removeCallbacks(typing);if(shown<target.length())handler.post(typing);}
 }
