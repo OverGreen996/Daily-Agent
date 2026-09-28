@@ -37,6 +37,7 @@ const server = http.createServer(async (req, res) => {
       )
         return send(401, { error: "Token required" });
       if (closing) return send(503, { error: "正在保存記憶並停止服務，請稍候。" });
+      if(url.pathname==='/api/pocketdrop'&&req.method==='GET')return send(200,agent.pocketdrop.status());
       if (url.pathname === "/api/status" && req.method === "GET")
         return send(200, await agent.status());
       if(url.pathname==='/api/palace' && req.method==='GET')return send(200,palaceView(agent.memory,url.searchParams.get('q')||'',url.searchParams.get('page')));
@@ -74,6 +75,9 @@ const server = http.createServer(async (req, res) => {
           return send(413, { error: "Image/body too large" });
       }
       const data = JSON.parse(body || "{}");
+      if(url.pathname==='/api/pocketdrop/pair')return send(200,await agent.pocketdrop.pair(data.invite));
+      if(url.pathname==='/api/pocketdrop/check'){const state=await agent.pocketdrop.state();return send(200,{connected:true,room:state.room_name,files:state.files.length,revision:state.revision});}
+      if(url.pathname==='/api/pocketdrop/disconnect')return send(200,{message:agent.pocketdrop.disconnect()});
       if(url.pathname==='/api/mobile/appearance')return send(200,{...agent.remote.appearance.publish(data),devices:agent.remote.devices.list().length});
       if(url.pathname==='/api/notification'){
         if(data.clear){agent.companion.pending.delete('NEW_NOTIFICATION');return send(200,{cleared:true});}
@@ -187,8 +191,11 @@ const server = http.createServer(async (req, res) => {
       const data=await fs.readFile(path.join(root,'desktop','assets','lumi','spritesheet.webp'));
       res.writeHead(200,{'Content-Type':'image/webp','Cache-Control':'public, max-age=3600'});res.end(data);return;
     }
+    if(url.pathname==='/jsqr.js'){res.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'});res.end(await fs.readFile(path.join(root,'node_modules/jsqr/dist/jsQR.js')));return;}
     const files = {
       "/": "index.html",
+      "/pocketdrop":"pocketdrop.html",
+      "/pocketdrop.js":"pocketdrop.js",
       "/app.js": "app.js",
       "/style.css": "style.css",
       '/palace':'palace.html',
@@ -200,7 +207,7 @@ const server = http.createServer(async (req, res) => {
       path.join(root, "ui", files[url.pathname]),
       "utf8",
     );
-    if (url.pathname === "/" || url.pathname==='/palace') content = content.replace("__TOKEN__", secret);
+    if (url.pathname === "/" || url.pathname==='/palace' || url.pathname==='/pocketdrop') content = content.replace("__TOKEN__", secret);
     res.writeHead(200, {
       "Content-Type": url.pathname.endsWith(".js")
         ? "text/javascript"

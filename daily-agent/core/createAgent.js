@@ -1,3 +1,4 @@
+import {PocketDrop} from '../remote/PocketDrop.js';
 import fs from "node:fs";
 import path from "node:path";
 import { config as defaults,root } from "../config.js";
@@ -181,5 +182,6 @@ export function createAgent(overrides = {}) {
   broker.remoteAuthorized=id=>agent.remote.devices.list().some(d=>d.id===id);
   agent.remote.gateway=new RemoteGateway(agent,{port:Number(process.env.DAILY_REMOTE_PORT||3221),apkPath:path.join(root,'android/dist/DailyPet-Android-0.1.0-preview.apk')});
   agent.remote.tunnel=new CloudflareTunnel(agent.remote.gateway,{binary:path.resolve(root,'../.daily-runtime/cloudflared/cloudflared.exe')});
+  agent.pocketdrop=new PocketDrop(config.dataDir);
   return agent;
 }

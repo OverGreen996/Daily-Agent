@@ -247,6 +247,12 @@ export class AgentCore {
       if(typeof document.data!=='string'||document.data.length>700000)throw Error('行事曆檔案過大或格式錯誤。');
       return conversationControl(this,text,{action:'calendar_import',name:document.name.slice(0,200),text:new TextDecoder('utf-8',{fatal:true}).decode(Buffer.from(document.data,'base64'))});
     }
+    if(!image&&!document&&this.pocketdrop){
+      if(request.deviceId&&!this.remote?.devices.list().some(d=>d.id===request.deviceId))throw Error('裝置配對已解除。');
+      let pocketReply;
+      try{pocketReply=await this.pocketdrop.command(text);}catch(e){pocketReply='PocketDrop：'+e.message;}
+      if(pocketReply!==null){this.bus.publish('pet_bubble',{text:pocketReply,target_device:request.deviceId,request_id:request.id,activity:'rest'},{transient:true});return {content:pocketReply};}
+    }
     const originalText=text;
     const imageSession=this.imageSessionFor(request);
     const imageModeCommand=!image&&!document?parseImageModeCommand(text):null;
