@@ -5,11 +5,45 @@ import os from 'node:os';
 import path from 'node:path';
 import https from 'node:https';
 import tls from 'node:tls';
+import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {PocketDrop,PocketCredentialStore,pocketEndpoint,pocketInvite,pinnedPocketRequest} from '../remote/PocketDrop.js';
 import {phoneCertificate} from '../environment/PhoneBridge.js';
 const room='11111111-1111-4111-8111-111111111111',device='22222222-2222-4222-8222-222222222222';
 const invite={app:'PocketDrop',protocol_version:1,token:'a'.repeat(43),certificate_sha256:'b'.repeat(64),room_id:room,device_id:device,endpoint:'https://192.168.1.2:3344'};
+test('pairing survives fresh client processes and same-endpoint TLS Room restart',{skip:process.platform!=='win32'},async t=>{
+  const host=Object.values(os.networkInterfaces()).flat().find(i=>i.family==='IPv4'&&!i.internal&&/^192\.168\./.test(i.address))?.address;
+  if(!host){t.skip('No private IPv4 interface');return;}
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'pocketdrop-restart-'));
+  t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+  const certificate=await phoneCertificate([host]);let server,pairCount=0,reads=0;
+  const start=async(port=0)=>{server=https.createServer(certificate,async(req,res)=>{
+    for await(const _ of req){};
+    if(req.url==='/v1/pair'){pairCount++;res.end(JSON.stringify({credential:'c'.repeat(43),room_id:room,device_id:device,room_name:'重啟測試'}));return;}
+    if(req.headers.authorization!=='Bearer '+'c'.repeat(43)||req.headers['x-pocketdrop-room']!==room){res.writeHead(401);res.end();return;}
+    reads++;res.end(JSON.stringify({room_id:room,device_id:device,text:'restart-ok',files:[]}));
+  });await new Promise(resolve=>server.listen(port,host,resolve));return server.address().port;};
+  const stop=()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve);});
+  t.after(async()=>{if(server.listening)await stop();});
+  const port=await start();
+  const pin=await new Promise((resolve,reject)=>{const socket=tls.connect({host,port,rejectUnauthorized:false},()=>{resolve(createHash('sha256').update(socket.getPeerCertificate().raw).digest('hex'));socket.end();});socket.once('error',reject);});
+  const qr={...invite,endpoint:`https://${host}:${port}`,certificate_sha256:pin};
+  const module=new URL('../remote/PocketDrop.js',import.meta.url).href;
+  const run=pair=>new Promise((resolve,reject)=>{
+    const code=`import {PocketDrop} from ${JSON.stringify(module)};let input='';for await(const c of process.stdin)input+=c;const v=JSON.parse(input),p=new PocketDrop(v.dir);if(v.pair)await p.pair(v.qr);const s=await p.state();console.log(JSON.stringify({paired:p.status().paired,text:s.text}));`;
+    const child=spawn(process.execPath,['--input-type=module','-e',code],{windowsHide:true,stdio:['pipe','pipe','pipe']});let out='',err='';
+    child.stdout.on('data',c=>out+=c);child.stderr.on('data',c=>err+=c);child.on('error',reject);child.on('close',c=>c===0?resolve(JSON.parse(out)):reject(Error(err)));child.stdin.end(JSON.stringify({dir,qr,pair}));
+  });
+  assert.deepEqual(await run(true),{paired:true,text:'restart-ok'});
+  const before=fs.readFileSync(path.join(dir,'pocketdrop.dpapi'),'utf8');
+  assert.deepEqual(await run(false),{paired:true,text:'restart-ok'});
+  await stop();
+  await assert.rejects(run(false),/無法連線/);
+  assert.equal(fs.readFileSync(path.join(dir,'pocketdrop.dpapi'),'utf8'),before);
+  await start(port);
+  assert.deepEqual(await run(false),{paired:true,text:'restart-ok'});
+  assert.equal(pairCount,1);assert.equal(reads,3);assert.equal(fs.readFileSync(path.join(dir,'pocketdrop.dpapi'),'utf8'),before);
+});
 test('PocketDrop accepts only pinned private IPv4 invitations',()=>{
   for(const url of ['http://192.168.1.2','https://example.com','https://8.8.8.8','https://192.168.1.2/path','https://user:secret@192.168.1.2','https://127.0.0.1'])assert.throws(()=>pocketEndpoint(url));
   assert.equal(pocketInvite(invite).endpoint,invite.endpoint);
