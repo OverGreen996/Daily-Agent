@@ -4,7 +4,7 @@ Windows 本機日常 AI 夥伴。原有 Framecraft 檔案保留。這個版本�
 
 ## 從零安裝：只下載一個檔案
 
-[下載 DailyAgent-Setup.exe](https://github.com/OverGreen996/Daily-Agent/releases/latest/download/DailyAgent-Setup.exe)，雙擊後按「一鍵安裝並配置」。不需要另找 ZIP、.sha256 或輸入 PowerShell 指令。程式自動下載本地模型及依賴，完成後啟動桌寵。首次建議預留 60 GB SSD 空間；目前配置以 Windows x64／NVIDIA 12 GB 顯存為基準。系統授權、Docker 條款或重開機依畫面處理。
+[下載 DailyAgent-Setup.exe](https://github.com/OverGreen996/Daily-Agent/releases/latest/download/DailyAgent-Setup.exe)，雙擊後按「安裝並選擇功能」。不需要另找 ZIP、.sha256 或輸入 PowerShell 指令。勾選所需功能後，程式只下載對應的本地模型及依賴，完成後啟動桌寵。所需空間依勾選項目而定，生圖每種模型約 7 GB，另需共用運行環境；目前配置以 Windows x64／NVIDIA 12 GB 顯存為基準。系統授權、Docker 條款或重開機依畫面處理。
 
 中斷後雙擊桌面 **Daily Agent Setup** 繼續；平時用 **Daily Agent**。手機、PocketDrop 與自己的 Cloudflare 帳號可稍後設定。[完整中文教學](deploy/使用教學.md)。
 
@@ -261,3 +261,13 @@ SearXNG 依使用者要求延後；陪玩與生圖仍不實作。Windows 通知�
 實作依據：[Ollama Chat API](https://docs.ollama.com/api/chat)、[模型占用 API](https://docs.ollama.com/api/ps)、[Embeddings](https://docs.ollama.com/api/embed)、[Qwen 模型標籤](https://ollama.com/library/qwen3.5/tags)。
 
 語音裝置可在右鍵 → 設定中分別選擇「接收麥克風」「語音播放裝置」「TTS 引擎」「說話速度」「Windows 聲線」「Kokoro 聲線」，並用「測試語音播放」試聽。也可說「語速快一點」「語速慢一點」「語速正常」或「語速 1.2 倍」，範圍為 0.7×～1.4×且會保存。選擇不修改 Windows 全域預設。模型回答會依標點分句排隊，Kokoro 透過音訊 callback 邊合成邊送往 waveOut，不必等待整篇文字或整句 WAV 完成。Kokoro 以 sherpa-onnx 在 CPU 執行，共 103 個聲線（中文女聲 55、中文男聲 45、英文女聲 3）；開啟語音回覆才暖機常駐 RAM，關閉時卸載，GPU／VRAM 使用量為零。單次試聽完成後也會卸載。詳見 [桌寵陪伴更新](COMPANION-UPDATE.md)。
+
+## 自選功能與卸載
+
+按「安裝並選擇功能」後會開啟功能勾選視窗，預設只有必要的桌寵、聊天、記憶及助理功能。語音朗讀、中文語音輸入、瀏覽器、動漫生圖、真人生圖、Docker 網路搜尋、Cloudflare 外網手機連線都可分開勾選。兩種生圖共用 ComfyUI，只選一種就不下載另一種，也不額外下載舊快速動漫模型。每種生圖約 7 GB 模型，運行環境與暫存另計。
+
+之後雙擊桌面 **Daily Agent Setup** 可重選、補裝或重試，會記住上次勾選。不勾只表示本次不配置，不會刪掉原有功能。同 Wi-Fi 手機配對與 PocketDrop 不需要勾 Cloudflare；外網連線仍需自己的帳號及網域。
+
+卸載：Windows「已安裝的應用程式」找到 Daily Agent，或雙擊桌面 **Daily Agent Uninstall**。確認視窗可勾選「保留記憶宮殿」（預設勾選）。卸載會刪除這套安裝的程式、模型、下載暫存、生成圖片、設定、手機與 PocketDrop 憑證及捷徑。保留時只留下 data/palace.sqlite 與 SQLite WAL 相關檔案（含對話記憶、喜好、行程及助理資料），重裝至同位置可沿用；取消勾選則一併刪除。
+
+本安裝建立的搜尋容器與指向本安裝的服務會移除；請先開啟 Docker，服務若需管理員權限請以管理員執行卸載。共用 Docker、WSL、瀏覽器、顯卡驅動及其他程式不會刪除；下載資料夾中的安裝檔也不會動。

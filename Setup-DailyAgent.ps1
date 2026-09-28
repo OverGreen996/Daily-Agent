@@ -1,3 +1,4 @@
+﻿param([switch]$SkipVoice)
 $ErrorActionPreference='Stop'
 if(Test-Path (Join-Path $PSScriptRoot 'vendor\node\node.exe')){$env:PATH=(Join-Path $PSScriptRoot 'vendor\node')+';'+$env:PATH}
 Set-Location $PSScriptRoot
@@ -27,7 +28,7 @@ if (!(Test-Path (Join-Path $runtimeDir 'ollama\ollama.exe'))) {
 }
 Push-Location (Join-Path $PSScriptRoot 'daily-agent')
 try { if(!(Test-Path 'node_modules')){npm ci --no-audit --no-fund; if ($LASTEXITCODE -ne 0) {throw 'npm ci failed'}}; node scripts/setup-tokenizer.js; if($LASTEXITCODE -ne 0){throw 'Tokenizer setup failed'} } finally {Pop-Location}
-& (Join-Path $PSScriptRoot 'Setup-Kokoro.ps1')
+if(!$SkipVoice){& (Join-Path $PSScriptRoot 'Setup-Kokoro.ps1')}
 & (Join-Path $PSScriptRoot 'Start-DailyAgent.ps1') -NoBrowser
 Push-Location (Join-Path $PSScriptRoot 'daily-agent')
 try { node scripts/pull-models.js; if ($LASTEXITCODE -ne 0) {throw 'Model download failed'}; node scripts/prepare-idle-q4.js; if ($LASTEXITCODE -ne 0) {throw 'Idle Q4 preparation failed'} } finally {Pop-Location}

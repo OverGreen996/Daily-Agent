@@ -1,5 +1,10 @@
-﻿param([switch]$SkipModel)
+﻿param([switch]$SkipModel,[string]$Profiles='all')
 $ErrorActionPreference='Stop'
+$chosen=@($Profiles.Split(',') | ForEach-Object {$_.Trim().ToLowerInvariant()})
+foreach($profile in $chosen){if($profile -notin @('all','legacy','anime','photo')){throw ('Unknown image profile: '+$profile)}}
+$legacy=$chosen -contains 'all' -or $chosen -contains 'legacy'
+$anime=$chosen -contains 'all' -or $chosen -contains 'anime'
+$photo=$chosen -contains 'all' -or $chosen -contains 'photo'
 $root=$PSScriptRoot
 $runtime=Join-Path $root '.daily-runtime'
 $downloads=Join-Path $runtime 'downloads'
@@ -32,14 +37,23 @@ $checkpoint=Join-Path $target 'ComfyUI\models\checkpoints\NoobAI-XL-v1.1.safeten
 $qualityCheckpoint=Join-Path $target 'ComfyUI\models\checkpoints\NoobAI-XL-Vpred-v1.0-cyberfix-perpendicular.safetensors'
 $photoCheckpoint=Join-Path $target 'ComfyUI\models\checkpoints\PornMaster-Pro-SDXL-V7-VAE.safetensors'
 $upscaler=Join-Path $target 'ComfyUI\models\upscale_models\RealESRGAN_x4plus_anime_6B.pth'
-if(!$SkipModel -and (!(Test-Path -LiteralPath $checkpoint) -or (Get-Item -LiteralPath $checkpoint).Length -lt 7100000000)){Download-Resume $modelUrl $checkpoint}
-if(!$SkipModel -and (!(Test-Path -LiteralPath $qualityCheckpoint) -or (Get-Item -LiteralPath $qualityCheckpoint).Length -lt 6938000000)){Download-Resume $qualityModelUrl $qualityCheckpoint}
-if(!$SkipModel -and (!(Test-Path -LiteralPath $photoCheckpoint) -or (Get-Item -LiteralPath $photoCheckpoint).Length -lt 7100000000)){Download-Resume $photoModelUrl $photoCheckpoint}
-if(!$SkipModel -and (!(Test-Path -LiteralPath $upscaler) -or (Get-Item -LiteralPath $upscaler).Length -lt 17900000)){Download-Resume $upscalerUrl $upscaler}
+if(!$SkipModel -and $legacy -and (!(Test-Path -LiteralPath $checkpoint) -or (Get-Item -LiteralPath $checkpoint).Length -lt 7100000000)){Download-Resume $modelUrl $checkpoint}
+if(!$SkipModel -and $anime -and (!(Test-Path -LiteralPath $qualityCheckpoint) -or (Get-Item -LiteralPath $qualityCheckpoint).Length -lt 6938000000)){Download-Resume $qualityModelUrl $qualityCheckpoint}
+if(!$SkipModel -and $photo -and (!(Test-Path -LiteralPath $photoCheckpoint) -or (Get-Item -LiteralPath $photoCheckpoint).Length -lt 7100000000)){Download-Resume $photoModelUrl $photoCheckpoint}
+if(!$SkipModel -and $anime -and (!(Test-Path -LiteralPath $upscaler) -or (Get-Item -LiteralPath $upscaler).Length -lt 17900000)){Download-Resume $upscalerUrl $upscaler}
 if(!(Test-Path -LiteralPath (Join-Path $target 'python_embeded\python.exe'))){throw '找不到 ComfyUI Python runtime'}
-if(!$SkipModel -and (!(Test-Path -LiteralPath $checkpoint) -or (Get-Item -LiteralPath $checkpoint).Length -lt 7100000000)){throw 'NoobAI XL checkpoint 不完整'}
-if(!$SkipModel -and (Get-FileHash -LiteralPath $checkpoint -Algorithm SHA256).Hash -ne $modelSha){throw 'NoobAI XL checkpoint 雜湊不符，請刪除該檔後重新執行安裝。'}
-if(!$SkipModel -and (!(Test-Path -LiteralPath $qualityCheckpoint) -or (Get-FileHash -LiteralPath $qualityCheckpoint -Algorithm SHA256).Hash -ne $qualityModelSha)){throw 'NoobAI XL V-Pred checkpoint 不完整或雜湊不符。'}
-if(!$SkipModel -and (!(Test-Path -LiteralPath $photoCheckpoint) -or (Get-FileHash -LiteralPath $photoCheckpoint -Algorithm SHA256).Hash -ne $photoModelSha)){throw 'PornMaster Pro SDXL V7 checkpoint 不完整或雜湊不符。'}
-if(!$SkipModel -and (!(Test-Path -LiteralPath $upscaler) -or (Get-FileHash -LiteralPath $upscaler -Algorithm SHA256).Hash -ne $upscalerSha)){throw 'RealESRGAN 動漫超解析模型不完整或雜湊不符。'}
-Write-Host '本地生圖已安裝。說「動漫模式」使用 NoobAI XL V-Pred；「真人模式」使用 PornMaster Pro SDXL V7。'
+if(!$SkipModel -and $legacy -and (!(Test-Path -LiteralPath $checkpoint) -or (Get-Item -LiteralPath $checkpoint).Length -lt 7100000000)){throw 'NoobAI XL checkpoint 不完整'}
+if(!$SkipModel -and $legacy -and (Get-FileHash -LiteralPath $checkpoint -Algorithm SHA256).Hash -ne $modelSha){throw 'NoobAI XL checkpoint 雜湊不符，請刪除該檔後重新執行安裝。'}
+if(!$SkipModel -and $anime -and (!(Test-Path -LiteralPath $qualityCheckpoint) -or (Get-FileHash -LiteralPath $qualityCheckpoint -Algorithm SHA256).Hash -ne $qualityModelSha)){throw 'NoobAI XL V-Pred checkpoint 不完整或雜湊不符。'}
+if(!$SkipModel -and $photo -and (!(Test-Path -LiteralPath $photoCheckpoint) -or (Get-FileHash -LiteralPath $photoCheckpoint -Algorithm SHA256).Hash -ne $photoModelSha)){throw 'PornMaster Pro SDXL V7 checkpoint 不完整或雜湊不符。'}
+if(!$SkipModel -and $anime -and (!(Test-Path -LiteralPath $upscaler) -or (Get-FileHash -LiteralPath $upscaler -Algorithm SHA256).Hash -ne $upscalerSha)){throw 'RealESRGAN 動漫超解析模型不完整或雜湊不符。'}
+Write-Host ('所選生圖模型配置完成：'+($chosen -join ', ')+ '。只可使用已安裝的對應模式。')
+# A fresh selective installation starts with an installed profile, without changing existing preferences.
+if(!$SkipModel -and ($anime -or $photo)){
+  $envFile=Join-Path $root 'daily-agent\.env.local'
+  $lines=@(if(Test-Path -LiteralPath $envFile){Get-Content -LiteralPath $envFile -Encoding UTF8})
+  if(!($lines | Where-Object {$_ -match '^\s*DAILY_IMAGE_DEFAULT_PROFILE='})){
+    $lines+='DAILY_IMAGE_DEFAULT_PROFILE='+$(if($anime){'quality'}else{'photo'})
+    [IO.File]::WriteAllText($envFile,($lines -join "`n")+"`n",[Text.UTF8Encoding]::new($false))
+  }
+}

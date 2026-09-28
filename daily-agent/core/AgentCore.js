@@ -69,7 +69,7 @@ export class AgentCore {
     this.summary = "";
     this.lastError = null;
     this.imageMode = false;
-    this.imageProfile = 'fast';
+    this.imageProfile = this.config?.imageDefaultProfile || 'fast';
     this.lastImageSpec = null;
   }
   exclusive(fn) {
@@ -596,7 +596,7 @@ export class AgentCore {
   imageSessionFor(request={}) {
     if(!request.deviceId)return this;
     this.mobileImageSessions ??= new Map();
-    if(!this.mobileImageSessions.has(request.deviceId))this.mobileImageSessions.set(request.deviceId,{imageMode:false,imageProfile:'fast',lastImageSpec:null});
+    if(!this.mobileImageSessions.has(request.deviceId))this.mobileImageSessions.set(request.deviceId,{imageMode:false,imageProfile:this.config?.imageDefaultProfile||'fast',lastImageSpec:null});
     return this.mobileImageSessions.get(request.deviceId);
   }
   async generateImage(originalText, requestText, request={}, previousSpec=null,sourceImage=null,editDenoise=0.44) {

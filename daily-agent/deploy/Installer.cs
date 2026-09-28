@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.IO.Compression;
 using System.Diagnostics;
@@ -40,18 +40,18 @@ class Installer {
     Application.EnableVisualStyles();
     string destination=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DailyAgent");
     var form=new Form{Text="日常桌寵：一鍵安裝",Width=610,Height=340,StartPosition=FormStartPosition.CenterScreen,FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false};
-    var label=new Label{Left=24,Top=20,Width=550,Height=115,Text="只需這一個安裝檔，不用解壓縮或輸入指令。\n\n安裝位置："+destination+"\n\n首次完整配置約需 60 GB SSD 空間與網路。\n適用 Windows x64、NVIDIA 顯卡；目前配置以 12 GB 顯存為基準。"};
-    var configure=new CheckBox{Left=24,Top=145,Width=550,Height=38,Checked=true,Text="安裝後自動下載模型、語音、生圖與搜尋所需工具（建議）"};
+    var label=new Label{Left=24,Top=20,Width=550,Height=115,Text="只需這一個安裝檔，不用解壓縮或輸入指令。\n\n安裝位置："+destination+"\n\n安裝後勾選需要的功能，只下載所選模型。\n適用 Windows x64、NVIDIA 顯卡；目前配置以 12 GB 顯存為基準。"};
+    var configure=new CheckBox{Left=24,Top=145,Width=550,Height=38,Checked=true,Text="安裝後開啟功能勾選視窗（基本功能預設勾選）"};
     var progress=new ProgressBar{Left=24,Top=200,Width=550,Height=22,Style=ProgressBarStyle.Marquee,Visible=false};
-    var button=new Button{Left=385,Top=242,Width=190,Height=38,Text="一鍵安裝並配置"};
-    configure.CheckedChanged+=(s,e)=>button.Text=configure.Checked?"一鍵安裝並配置":"只安裝程式";
+    var button=new Button{Left=385,Top=242,Width=190,Height=38,Text="安裝並選擇功能"};
+    configure.CheckedChanged+=(s,e)=>button.Text=configure.Checked?"安裝並選擇功能":"只安裝程式";
     bool busy=false;
     form.FormClosing+=(s,e)=>{if(busy)e.Cancel=true;};
     button.Click+=async(s,e)=>{
       busy=true;button.Enabled=false;configure.Enabled=false;progress.Visible=true;
       string stage=Path.Combine(Path.GetTempPath(),"DailyAgent-Setup-"+Guid.NewGuid().ToString("N"));
       try{
-        label.Text="正在校驗並安裝程式，請稍候…\n\n安裝後將開啟中文配置進度視窗。\n下載中斷或重開機後，雙擊桌面「Daily Agent Setup」即可繼續。\n\n手機配對與 Cloudflare 帳號會在後續自行設定。";
+        label.Text="正在校驗並安裝程式，請稍候…\n\n安裝後會先讓你勾選功能，再下載及配置。\n下載中斷或重開機後，雙擊桌面「Daily Agent Setup」即可繼續。\n\n手機配對與 Cloudflare 帳號會在後續自行設定。";
         await Task.Run(()=>Install(stage,destination));
         if(configure.Checked)Process.Start(new ProcessStartInfo("powershell.exe","-NoProfile -NoExit -ExecutionPolicy Bypass -File \""+Path.Combine(destination,"Setup-DailyAgent.ps1")+"\""){UseShellExecute=true,WorkingDirectory=destination});
         else MessageBox.Show("安裝完成。要下載模型時，雙擊桌面「Daily Agent Setup」。","日常桌寵");

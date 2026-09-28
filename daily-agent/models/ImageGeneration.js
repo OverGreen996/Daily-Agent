@@ -241,9 +241,9 @@ export class ComfyUIImageRuntime {
     const resident = await this.status();
     if (resident) return resident;
     if (!fs.existsSync(this.python()) || !fs.existsSync(this.main()))
-      throw Error("本地生圖後端尚未安裝。請先執行 Setup-ImageGeneration.ps1。");
+      throw Error("本地生圖後端尚未安裝。請開啟桌面 Daily Agent Setup，勾選對應的生圖功能下載。");
     if (!fs.existsSync(this.checkpoint))
-      throw Error("本地生圖模型尚未下載。請先執行 Setup-ImageGeneration.ps1。");
+      throw Error("本地生圖模型尚未下載。請開啟桌面 Daily Agent Setup，勾選對應的生圖功能下載。");
     const logDir = path.dirname(this.outputDir);
     fs.mkdirSync(logDir, { recursive: true });
     const out = fs.openSync(path.join(logDir, "comfyui.out.log"), "a");

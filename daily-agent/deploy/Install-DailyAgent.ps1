@@ -46,6 +46,8 @@ Move-Item -LiteralPath ($currentFile+'.tmp') -Destination $currentFile -Force
 Copy-Item -LiteralPath (Join-Path $release 'daily-agent\deploy\Launch-DailyAgent.ps1') -Destination (Join-Path $destinationRoot 'Launch-DailyAgent.ps1') -Force
 Copy-Item -LiteralPath (Join-Path $release 'daily-agent\deploy\Setup-Installed.ps1') -Destination (Join-Path $destinationRoot 'Setup-DailyAgent.ps1') -Force
 Copy-Item -LiteralPath (Join-Path $release 'daily-agent\deploy\Update-DailyAgent.ps1') -Destination (Join-Path $destinationRoot 'Update-DailyAgent.ps1') -Force
+Copy-Item -LiteralPath (Join-Path $release 'daily-agent\deploy\Uninstall-DailyAgent.ps1') -Destination (Join-Path $destinationRoot 'Uninstall-DailyAgent.ps1') -Force
+@{kind='DailyAgentInstallation';root=$destinationRoot} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destinationRoot '.daily-install.json') -Encoding UTF8
 if(!$NoShortcut){
   $shell=New-Object -ComObject WScript.Shell
   $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'Daily Agent.lnk'))
@@ -56,6 +58,16 @@ if(!$NoShortcut){
   $setupShortcut.TargetPath=$shortcut.TargetPath
   $setupShortcut.Arguments='-NoProfile -NoExit -ExecutionPolicy Bypass -File "'+(Join-Path $destinationRoot 'Setup-DailyAgent.ps1')+'"'
   $setupShortcut.WorkingDirectory=$destinationRoot;$setupShortcut.Save()
+  $uninstallShortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'Daily Agent Uninstall.lnk'))
+  $uninstallShortcut.TargetPath=$shortcut.TargetPath
+  $uninstallShortcut.Arguments='-NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $destinationRoot 'Uninstall-DailyAgent.ps1')+'"'
+  $uninstallShortcut.WorkingDirectory=$env:TEMP;$uninstallShortcut.Save()
+  $uninstallKey='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DailyAgent'
+  New-Item -Path $uninstallKey -Force | Out-Null
+  New-ItemProperty -Path $uninstallKey -Name DisplayName -Value 'Daily Agent 日常桌寵' -Force | Out-Null
+  New-ItemProperty -Path $uninstallKey -Name DisplayVersion -Value $manifest.version -Force | Out-Null
+  New-ItemProperty -Path $uninstallKey -Name InstallLocation -Value $destinationRoot -Force | Out-Null
+  New-ItemProperty -Path $uninstallKey -Name UninstallString -Value ('"'+$shortcut.TargetPath+'" '+$uninstallShortcut.Arguments) -Force | Out-Null
 }
 Write-Output ('Installed '+$manifest.version+' to '+$destinationRoot)
 Write-Output 'First launch: run Setup-DailyAgent.ps1 in the install directory to download the local models, then use the desktop shortcut. Updates preserve data and models.'

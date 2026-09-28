@@ -14,6 +14,7 @@ export const config = {
   imageCheckpoint: process.env.DAILY_IMAGE_CHECKPOINT || "NoobAI-XL-v1.1.safetensors",
   imageQualityCheckpoint: process.env.DAILY_IMAGE_QUALITY_CHECKPOINT || "NoobAI-XL-Vpred-v1.0-cyberfix-perpendicular.safetensors",
   imagePhotoCheckpoint: process.env.DAILY_IMAGE_PHOTO_CHECKPOINT || "PornMaster-Pro-SDXL-V7-VAE.safetensors",
+  imageDefaultProfile: ['quality','photo'].includes(process.env.DAILY_IMAGE_DEFAULT_PROFILE) ? process.env.DAILY_IMAGE_DEFAULT_PROFILE : 'fast',
   imagePort: Number(process.env.DAILY_IMAGE_PORT || 8189),
   fullModel: "qwen3.5:4b",
   idleModel: "daily-qwen-idle:0.8b-q4",
