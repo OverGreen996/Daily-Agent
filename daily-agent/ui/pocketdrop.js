@@ -14,6 +14,6 @@ document.querySelector('#image').onchange=async e=>{
   }catch(e){status.textContent=e instanceof SyntaxError?'QR 內容不是有效的邀請。':e.message;}
 };
 button.onclick=async()=>{button.disabled=true;try{const v=await api('/pair',{invite});invite=null;document.querySelector('#image').value='';status.textContent='已配對：'+v.room+'。可以在桌寵讀取共享文字。';}catch(e){status.textContent=e.message;}finally{button.disabled=!invite;}};
-document.querySelector('#check').onclick=async()=>{try{const v=await api('/check',{});status.textContent='已連線：'+v.room+'；共享檔案 '+v.files+' 筆。';}catch(e){status.textContent=e.message;}};
+document.querySelector('#check').onclick=async()=>{const check=document.querySelector('#check');check.disabled=true;status.textContent='正在連線；原位址無法使用時，會自動尋找同一個 Room，請稍候…';try{const v=await api('/check',{});status.textContent='已連線：'+v.room+'；共享檔案 '+v.files+' 筆。';}catch(e){status.textContent=e.message;}finally{check.disabled=false;}};
 document.querySelector('#disconnect').onclick=async()=>{try{status.textContent=(await api('/disconnect',{})).message;}catch(e){status.textContent=e.message;}};
 api('').then(v=>status.textContent=v.paired?'已配對：'+v.room+'。按「檢查連線」驗證。':'尚未配對。').catch(e=>status.textContent=e.message);
