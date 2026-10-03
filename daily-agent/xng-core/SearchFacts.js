@@ -235,8 +235,13 @@ export function crossCheckFacts(query,results,{now=Date.now()}={}){
       const target=requested[0],hit=values.find(x=>x.value===target);
       facts.version={requested:target,verified:!!hit&&(hit.primary_support>=1||hit.support>=2),support:hit?.support||0,primary_support:hit?.primary_support||0,candidates:hit?[hit]:[],conflict:false};
     } else if(values.length) {
-      const consensus=(values[0].support>=2||values[0].primary_support>=1)?values[0].value:null;
-      facts.version={verified:consensus!==null,consensus,candidates:values.slice(0,10),conflict:values.length>1};
+      const observedConsensus=(values[0].support>=2||values[0].primary_support>=1)?values[0].value:null;
+      // A download/release-history page can mention stable, preview and future branches.
+      // Independent occurrence verifies observation, not which release channel is latest.
+      const ambiguousLatest=/latest|最新|目前|現在|current/i.test(q)&&values.length>1;
+      const consensus=ambiguousLatest?null:observedConsensus;
+      facts.version={verified:consensus!==null,consensus,observed_consensus:observedConsensus,candidates:values.slice(0,10),conflict:values.length>1,
+        ...(ambiguousLatest?{latest_status:'unresolved-multiple-observed-versions'}:{})};
     } else facts.version={verified:false,consensus:null,candidates:[],conflict:false};
   }
   if(/日期|發布|新聞|今天|今日|date|released?/i.test(q)){

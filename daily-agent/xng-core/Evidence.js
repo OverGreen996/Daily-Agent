@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {publisherKey,OFFICIAL_DOMAINS} from './SourceRegistry.js';
-import {focusTerms,topicCoverage,sourceReliability,assessSearchQuality,titleSimilarity} from './SearchQuality.js';
+import {focusTerms,topicCoverage,sourceReliability,assessSearchQuality,titleSimilarity,isSteamAgeGate} from './SearchQuality.js';
 import {inferIntent} from './SearchPlanner.js';
 import {crossCheckFacts,gateQualityWithFacts} from './SearchFacts.js';
 import {gameEvidence,isGameQuery} from './GameSearch.js';
@@ -87,7 +87,7 @@ export function contentChecks(rows,query){
  return checks;
 }
 export function buildEvidencePack(raw,query,{mode='normal',limit=3,sourceLimit=limit,overrides={},degraded=false,maxBytes=40000}={}){
- const merged=dedupEvidence(raw.results||[]),reviewed=merged.results.filter(r=>!overrideFor(r.url,overrides).blocked&&usableStoreSaleEvidence(r,query))
+ const merged=dedupEvidence(raw.results||[]),reviewed=merged.results.filter(r=>(!r.reference_entry||['page','article'].includes(r.coverage))&&!isSteamAgeGate(r)&&!overrideFor(r.url,overrides).blocked&&usableStoreSaleEvidence(r,query))
   .map(r=>({...r,scores:evidenceScores(r,query,overrides)})).sort((a,b)=>b.scores.ranking-a.scores.ranking).slice(0,Math.min(10,Math.max(sourceLimit,limit)));
  const ranked=reviewed.slice(0,limit),facts=crossCheckFacts(query,reviewed);
  const validation=contentChecks(reviewed,query);
@@ -108,7 +108,8 @@ export function buildEvidencePack(raw,query,{mode='normal',limit=3,sourceLimit=l
   if(quality.confidence==='HIGH')quality.confidence='MEDIUM';
  }
  const game=isGameQuery(query)?gameEvidence(query,ranked,raw.game_updates||[]):null;
- const updates=(raw.game_updates||[]).slice(0,3);
+ const updates=(raw.game_updates||[]).filter(r=>!isSteamAgeGate(r))
+  .sort((a,b)=>(b.reliability==='primary')-(a.reliability==='primary')||(Date.parse(b.modified_at||b.date)||0)-(Date.parse(a.modified_at||a.date)||0)).slice(0,3);
  const content_validation=game?validation:undefined;
  if(game){quality.game_update_status=game.update_status;quality.freshness_confidence=game.update_status==='primary-update-read'?'MEDIUM':'LOW';if(quality.confidence==='HIGH'&&(/最新|latest|current|目前/i.test(query)||!content_validation?.some(x=>x.status==='textually-corroborated')))quality.confidence='MEDIUM';}
  if(validation.some(c=>c.possible_conflicts.length)){quality.evidence_gates=[...(quality.evidence_gates||[]),'content-conflict-needs-review'];if(quality.confidence==='HIGH')quality.confidence='MEDIUM';}
@@ -118,7 +119,7 @@ export function buildEvidencePack(raw,query,{mode='normal',limit=3,sourceLimit=l
   id:'S'+(i+1),title:String(r.title||'').slice(0,300),url:r.url,publisher:publisherKey(r.url),source_type:r.scores?.source_type||sourceType(r,overrides),
   reliability:r.reliability||sourceReliability(r.url,query),published_at:r.date||null,updated_at:r.modified_at||null,retrieved_at:r.retrieved_at||raw.retrieved_at||new Date().toISOString(),
   coverage:r.coverage||'search-excerpt',purpose:i<ranked.length?'answer-evidence':'update-context',
-  scores:r.scores||evidenceScores(r,query,overrides),passages:extractPassages(r.body||r.content||'',query,{maxChars:i<ranked.length?1800:1000}),duplicate_sources:r.duplicate_sources||[],
+  scores:r.scores||evidenceScores(r,query,overrides),passages:extractPassages(r.body||r.content||'',query,{maxChars:1800}),duplicate_sources:r.duplicate_sources||[],
   ...(r.body_truncated?{body_truncated:true}:{})
  }));
  const pack={schema_version:1,query,mode,provider:raw.provider||'SearXNG',paid:false,degraded,quality,facts,

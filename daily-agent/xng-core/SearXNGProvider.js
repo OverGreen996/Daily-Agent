@@ -308,7 +308,10 @@ export class SearXNGProvider extends SearchProvider {
           const update=await this.rawSearch(variant,updateQuery);usedQueries.push(variant);
           rows.push(...(update.results||[]).map(r=>({...r,query_variant:variant})));
         }
-        for(const r of rankSearchResults(rows.filter(r=>gameIdentityMatches(plan.game.title_hint,{...r,content:'',body:''})&&/patch|updates?|hotfix|release|news|更新|修正|補丁|アプデ|アップデート/i.test(r.title+' '+r.url)),updateQuery,{limit:4}))gameUpdates.push({
+        for(const r of rankSearchResults(rows.filter(r=>gameIdentityMatches(plan.game.title_hint,{...r,content:'',body:''})&&
+          (/patch|updates?|hotfix|release|news|更新|修正|補丁|アプデ|アップデート/i.test(r.title+' '+r.url)||
+           sourceReliability(r.url,query)==='primary'&&/\b\d+(?:\.\d+){1,4}\b/.test(r.title)&&
+           gameIdentityMatches(plan.game.title_hint,{title:r.title,url:'',content:'',body:''}))),updateQuery,{limit:4}))gameUpdates.push({
           title:String(r.title||'').slice(0,300),url:r.url,body:String(r.content||'').slice(0,1800),
           date:r.publishedDate||r.pubdate||null,reliability:r.reliability,coverage:'search-excerpt',purpose:'update-context'
         });

@@ -2,6 +2,10 @@ import {isStoreSaleQuery} from './QueryText.js';
 export function relevantPassages(body,query,max=2200){
  const text=String(body||'');if(text.length<=max)return text;
  const terms=[...new Set((String(query).toLowerCase().match(/[a-z0-9][a-z0-9.#-]{1,}|[\p{Script=Han}]{2,}/gu)||[]).filter(t=>!['latest','official','docs','wiki','wiki.gg','guide','攻略','最新','官方'].includes(t)))];
+ // Chinese questions must retain English patch mechanics, not only the intro.
+ const mechanics=[[/武器|槍械|\bweapons?\b/i,'weapon'],[/傷害|\bdamage\b/i,'damage'],[/後座力|\brecoil\b/i,'recoil'],[/射速|fire rate/i,'fire rate'],[/冷卻|\bcooldown\b/i,'cooldown'],[/彈藥|\bammo\b/i,'ammo'],[/護甲|裝甲|\barmor\b/i,'armor']];
+ const requested=mechanics.filter(([pattern])=>pattern.test(query)).map(([,term])=>term);
+ for(const term of requested)if(!terms.includes(term))terms.push(term);
  const windows=[],sale=isStoreSaleQuery(query);
  const starts=new Set();for(let i=0;i<text.length;i+=500)starts.add(i);
  if(sale){
@@ -11,7 +15,7 @@ export function relevantPassages(body,query,max=2200){
  }
  for(const i of starts){
   const chunk=text.slice(i,i+850),low=chunk.toLowerCase();
-  let score=terms.filter(t=>low.includes(t)).length*10+(/requires?|prerequisite|how to|obtained|location|unlock|限制|前置|取得|需要|步驟|修正|nerf|buff/i.test(chunk)?4:0);
+  let score=terms.filter(t=>low.includes(t)).length*10+requested.filter(t=>low.includes(t)).length*30+(/requires?|prerequisite|how to|obtained|location|unlock|限制|前置|取得|需要|步驟|修正|nerf|buff/i.test(chunk)?4:0);
   if(sale){
    score+=Math.min(10,(chunk.match(/\d+\s*(?:%|％|元)|(?:NT\s*\$|TWD|USD|€|\$)\s*\d/gi)||[]).length)*8;
    score+=Math.min(5,(chunk.match(/《[^》]+》/g)||[]).length)*3;

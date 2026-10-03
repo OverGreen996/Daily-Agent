@@ -101,4 +101,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\daily-agent\desktop\Build-
 新增模組最少驗證：單獨停用、相依缺失、入口缺檔、基本聊天繼續、API 不繞過認證、手機工具限制、停止時資源清理。測試使用隔離資料，不改使用者宮殿。`createAgent()` 現在為非同步，程式端必須 `await createAgent()`。
 # 安裝目錄與執行資源
 
+獨立 XNG 的核心使用 `.plugins/versions/<version>/core`，`.plugins/current.json` 保存下次啟動與可回復版本；`.runtime` 保存共享搜尋狀態。下載、完整性校驗及回歸均由 XNG 自己的管理器負責，Daily Agent 只開啟管理入口與透過 HTTP 搜尋。已運行的服務要明確重啟才切換。Cloudflare 管理公開下載與更新索引，沒有上傳本機資料。
+
+`integrations/xng-plugin` 是發佈工具副本；維護時修改獨立 XNG 的 `plugins` 原始碼，再同步該副本並驗證，不在此另外實作搜尋演算法。
+
 安裝版以 `.daily-install.json` 確認安裝根目錄，程式碼放在 `releases/<版本>`，模型及寵物設定放在根目錄的 `runtime`，記憶放在 `data`。PowerShell、Node 與原生桌寵各使用集中式路徑解析器，直接讀取共享目錄，不再依賴目錄 junction。原始碼版仍使用專案內 `.daily-runtime`。

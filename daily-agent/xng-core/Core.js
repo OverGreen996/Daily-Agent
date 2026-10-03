@@ -9,11 +9,13 @@ import {inferIntent} from './SearchPlanner.js';
 import {configuredDomainOverrides} from './SourceRegistry.js';
 import {SteamStore,steamEvidence,steamRequest} from './SteamStore.js';
 import {sourceBudget} from './SourceBudget.js';
+import {SteamNews} from './SteamNews.js';
+import {isGameQuery} from './GameSearch.js';
 const here=path.dirname(fileURLToPath(import.meta.url));
 export function normalizedQuery(q){return String(q).normalize('NFKC').replace(/(\d{3,5})(ti)\b/gi,'$1 $2').replace(/\s+/g,' ').trim().toLowerCase();}
 function ttlFor(q){const intent=inferIntent(q);return intent==='news'?60000:['game','price','store-sale'].includes(intent)||/最新|latest|最近|version|版本|driver|update|release/i.test(q)?120000:/docs|documentation|文件|教學/i.test(q)?3600000:900000;}
 export class XngCore {
- constructor({endpoint='http://127.0.0.1:8888',stateDir=path.resolve(here,'../.runtime'),overrides=null,provider=null,browser=null,search=null,steam=null,maxPending=4,budgets={fast:8000,normal:25000,deep:40000}}={}){
+ constructor({endpoint='http://127.0.0.1:8888',stateDir=path.resolve(here,'../.runtime'),overrides=null,provider=null,browser=null,search=null,steam=null,steamNews=null,maxPending=4,budgets={fast:8000,normal:25000,deep:40000}}={}){
   const u=new URL(endpoint);if(!['127.0.0.1','localhost','[::1]'].includes(u.hostname)||u.username||u.password||!['http:','https:'].includes(u.protocol))throw Error('XNG upstream must be a local HTTP(S) SearXNG instance');
   Object.assign(this,{endpoint,stateDir,maxPending,budgets});this.health=new Map();this.rawCache=new Map();this.cache=new Map();this.inFlight=new Map();this.queue=Promise.resolve();this.pending=0;this.active=0;this.closed=false;
   this.metrics={requests:0,cache_hits:0,deduplicated_requests:0,degraded:0,failures:0};this.latencies=[];
@@ -22,6 +24,7 @@ export class XngCore {
   this.provider=provider||new SearXNGProvider({endpoint,engineHealth:this.health,searchCache:this.rawCache});
   this.searcher=search||new LightSearchBrowser(this.provider,browser||new BrowserAgent({idleMs:1000}));
   this.steam=steam||new SteamStore();
+  this.steamNews=steamNews||new SteamNews();
  }
  status(){const sorted=[...this.latencies].sort((a,b)=>a-b);return {service:'XNG AI Search Hub',schema_version:1,paid:false,models_loaded:0,endpoint:this.endpoint,active:this.active,pending:this.pending,cache_entries:this.cache.size,raw_cache_entries:this.rawCache.size,
   memory_rss_bytes:process.memoryUsage().rss,heap_used_bytes:process.memoryUsage().heapUsed,uptime_seconds:Math.floor(process.uptime()),metrics:{...this.metrics},recent_latency_ms:{samples:sorted.length,p50:sorted[Math.floor(sorted.length*.5)]??null,p95:sorted[Math.min(sorted.length-1,Math.floor(sorted.length*.95))]??null},
@@ -34,11 +37,15 @@ export class XngCore {
   if(typeof query!=='string'||!query.trim()||query.length>2000)throw Object.assign(Error('query must be 1–2000 characters'),{status:400});
   if(!['fast','normal','deep'].includes(mode))throw Object.assign(Error('mode must be fast, normal or deep'),{status:400});
   const budget=sourceBudget(mode,limit,sourceLimit);limit=budget.returned;
-  const original=query.trim(),processed=compactQuery(original).slice(0,500),key=JSON.stringify([normalizedQuery(processed),mode,limit,budget.collected]),started=Date.now();this.metrics.requests++;
+  const original=query.trim(),baseQuery=compactQuery(original).slice(0,490),
+   processed=baseQuery+(isGameQuery(original)&&!isGameQuery(baseQuery)?' game':''),
+   // Evidence depends on all original constraints, including instructions that
+   // were removed from the engine query. Share raw searches, not wrong packs.
+   key=JSON.stringify([normalizedQuery(original),mode,limit,budget.collected]),started=Date.now();this.metrics.requests++;
   const cached=this.cache.get(key);
   const format=(value,hit=false)=>{
    const out=structuredClone(value.pack);out.query=original;out.cache={hit,age_ms:hit?Date.now()-value.created_at:0};
-   if(processed.length<compactQuery(original).length)out.query_processing={method:'local-rules',truncated:true,notice:'查詢超過本地搜尋核心限制，已縮短；請檢查重要條件是否保留。'};
+   if(baseQuery.length<compactQuery(original).length)out.query_processing={method:'local-rules',truncated:true,notice:'查詢超過本地搜尋核心限制，已縮短；請檢查重要條件是否保留。'};
    if(debug)out.debug={...value.diagnostics,cache_hit:hit,original_query:original,processed_query:processed,request_elapsed_ms:Date.now()-started};
    return out;
   };
@@ -55,6 +62,9 @@ export class XngCore {
      .catch(e=>({provider:'Steam public storefront',paid:false,status:'unavailable',region:'TW',currency:'TWD',products:[],errors:[String(e.message).slice(0,100)]}))
      .then(store=>{storePartial=store;partial=mergeStore(partial||r,store);return store;});
     const searchTask=(async()=>{
+     // Official update discovery is independent of general engines. It can
+     // recover patch evidence even when SearXNG returns no guide candidates.
+     const newsTask=!storeRequested&&isGameQuery(original)?this.steamNews.enrich({results:[]},original,{mode}):null;
      if(storeRequested?.price_only&&!storeRequested.unsupported_region&&!storeRequested.historical){
       const direct={results:[],provider:'XNG Steam public storefront',store_direct:true},store=await startStore(direct);
       if(store?.products?.length)return mergeStore(direct,store);
@@ -65,14 +75,21 @@ export class XngCore {
      let result;try{result=await this.searcher.search(processed,{mode,limit:budget.collected,structuredStore:!!storeRequested,onProgress:r=>{
       partial=mergeStore(r,storePartial);
       if(storeRequested&&(mode==='fast'||r.results?.some(x=>x.coverage==='page'||x.coverage==='article')))startStore(r);
-     }});}catch(e){if(!storeRequested||e.name==='AbortError')throw e;result=partial||{results:[],provider:'SearXNG',notice:'一般搜尋未取得完整資料；使用Steam官方來源核對。'};}
+     }});}catch(e){
+      if(e.name==='AbortError')throw e;
+      const updates=newsTask?await newsTask:[];
+      if(!storeRequested&&!updates.length)throw e;
+      result=partial||{results:[],provider:'SearXNG',notice:'一般搜尋未取得完整資料；使用Steam官方來源核對。'};
+      if(updates.length)result={...result,game_updates:updates};
+     }
      if(storeRequested)result=mergeStore(result,await startStore(result));
+     if(newsTask){const updates=await newsTask;if(updates.length)result={...result,game_updates:[...updates,...(result.game_updates||[]).filter(x=>!updates.some(u=>u.url===x.url))]};}
      partial=result;return result;
     })();
     const timeout=new Promise(resolve=>{timer=setTimeout(()=>resolve({timeout:true}),this.budgets[mode]);});
     const winner=await Promise.race([searchTask.then(value=>({value}),error=>({failed:true,error_name:error.name,error_message:String(error.message).slice(0,200)})),timeout]);
     clearTimeout(timer);
-    if(winner.timeout){this.steam.cancel?.();await Promise.race([this.searcher.close().catch(()=>{}),new Promise(resolve=>{const t=setTimeout(resolve,1500);t.unref?.();})]);degraded=true;raw=partial||{results:[],provider:'SearXNG',notice:'搜尋超過本次時間預算，僅提供已取得的證據。'};}
+    if(winner.timeout){this.steam.cancel?.();this.steamNews.cancel();await Promise.race([this.searcher.close().catch(()=>{}),new Promise(resolve=>{const t=setTimeout(resolve,1500);t.unref?.();})]);degraded=true;raw=partial||{results:[],provider:'SearXNG',notice:'搜尋超過本次時間預算，僅提供已取得的證據。'};}
     else if(winner.failed){degraded=true;this.metrics.failures++;raw=partial||{results:[],provider:'SearXNG',notice:'上游未提供可用結果，本次沒有足夠證據；可稍後重試或提供官方網址。'};}
     else raw=winner.value;
     if(degraded)this.metrics.degraded++;
@@ -89,5 +106,5 @@ export class XngCore {
   this.queue=task.catch(()=>{});this.inFlight.set(key,task);
   try{return format(await task);}finally{this.inFlight.delete(key);}
  }
- async close(){this.closed=true;this.steam.cancel?.();await this.searcher.close();this.persistHealth();}
+ async close(){this.closed=true;this.steam.cancel?.();this.steamNews.cancel();await this.searcher.close();this.persistHealth();}
 }

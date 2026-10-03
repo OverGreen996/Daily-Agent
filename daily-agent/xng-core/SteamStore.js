@@ -46,9 +46,11 @@ export class SteamStore {
  constructor({fetcher=fetch,now=()=>Date.now()}={}){Object.assign(this,{fetcher,now});this.cache=new Map();this.cooldown=0;this.controllers=new Set();this.requests=0;}
  cancel(){for(const c of this.controllers)c.abort();}
  status(){return {enabled:true,paid:false,region:'TW',cache_entries:this.cache.size,requests:this.requests,cooldown_until:this.cooldown};}
- async json(path,params,job){
+ async json(path,params,job,{news=false,identity=false}={}){
   if(job.signal.aborted)throw new DOMException('Steam lookup cancelled','AbortError');
-  const u=new URL(path,HOST);u.search=new URLSearchParams({...params,cc:'tw',l:'tchinese'});
+  const u=new URL(path,news?'https://api.steampowered.com':HOST);
+  if(news&&u.pathname!=='/ISteamNews/GetNewsForApp/v2/')throw Error('Unsupported public news endpoint');
+  u.search=new URLSearchParams(news?params:{...params,cc:identity?'us':'tw',l:identity?'english':'tchinese'});
   const key=u.href,cached=this.cache.get(key);
   if(cached?.expires>this.now())return structuredClone(cached.value);
   if(this.cooldown>this.now())throw Error('Steam source cooling down');

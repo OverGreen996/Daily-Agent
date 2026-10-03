@@ -47,6 +47,14 @@ Windows 桌寵搭配本地 AI 模型，提供繁體中文對話、記憶宮殿�
 
 程式版本、模型與使用者資料分開存放。更新保留記憶與設定；卸載可選是否保留記憶宮殿。共用 XNG、Docker、WSL 不歸本安裝管理。
 
+## XNG 獨立插件與 Cloudflare 更新
+
+[XNG 插件站](https://xng-plugins.kentyang1993.workers.dev/) 提供核心、獨立管理工具、公開更新索引和中文 API 教學。所有程式可以下載同一版本，或共用本機 `127.0.0.1:8889`。搜尋核心不必隨 Daily Agent 重裝。
+
+更新採「檢查更新 → 確認安裝 → 校驗與回歸 → 重新啟動」，可回復舊版。Cloudflare 目前託管下載與更新檔；搜尋執行於自己的 XNG 主機，沒有公開個人桌寵的 API。詳見 [插件使用與維護](daily-agent/integrations/xng-plugin/README.md)。
+
+原始碼設定視窗已有「模組管理器 → XNG 插件更新」入口。已發布 Windows release 12 尚未重打包，該安裝版請直接雙擊獨立 XNG 的 `Open-XNGPlugin.cmd`；原本的手機網址與 APK 不變。
+
 ## 手機使用順序
 
 1. 先完成電腦安裝，再掃 QR Code 或下載上方 APK。

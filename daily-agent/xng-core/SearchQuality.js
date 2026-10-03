@@ -209,6 +209,7 @@ export function rankSearchResults(results, query, { limit = 9 } = {}) {
     .filter(r=>{
       const hay=((r.title||"")+" "+(r.url||"")+" "+(r.content||"")).toLowerCase();
       if(sourceOverride(r.url).blocked)return false;
+      if(isSteamAgeGate(r))return false;
       if(!usableStoreSaleEvidence(r,query))return false;
       const scope=explicitDomain(query);if(scope&&!hostMatches(hostOf(r.url),scope))return false;
       const title=String(r.title||"").toLowerCase();
@@ -253,6 +254,7 @@ export function rankSearchResults(results, query, { limit = 9 } = {}) {
   }
   return output;
 }
+export function isSteamAgeGate(result){return /^https?:\/\/store\.steampowered\.com\/agecheck\//i.test(String(result?.url||''));}
 
 export function assessSearchQuality(results, query, { fullText = false } = {}) {
   const list = Array.isArray(results) ? results : [];

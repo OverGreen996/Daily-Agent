@@ -35,6 +35,16 @@ function pageDates(html){
       };walk(JSON.parse(decode(m[1]).trim()));
     }catch{}
   }
+  if(!date){
+    // Only an explicitly labelled date immediately after the main heading;
+    // unrelated dates in body/sidebar/footer must not become publication dates.
+    const root=contentRoot(html),heading=/<h1\b[^>]*>[\s\S]*?<\/h1>/i.exec(root);
+    if(heading){
+      const after=root.slice(heading.index+heading[0].length,heading.index+heading[0].length+1200);
+      const labelled=after.match(/<(?:span|time)\b[^>]*\bclass=["'][^"']*\b(?:date|entry-date|post-date|published)\b[^"']*["'][^>]*>([^<]{6,60})<\/(?:span|time)>/i)?.[1];
+      if(labelled&&Number.isFinite(Date.parse(decode(labelled))))date=decode(labelled).trim();
+    }
+  }
   if(!modified){
     const edited=html.match(/This page was last edited on\s+(\d{1,2}\s+[A-Za-z]+\s+20\d{2}),?\s+(?:at\s+)?(\d{1,2}:\d{2})(?:\s*\(?(UTC)\)?)?/i);
     if(edited)modified=edited[1]+' '+edited[2]+' UTC';
@@ -107,7 +117,7 @@ export class FastPageReader{
       }
       if(!response.ok)throw Error('HTTP '+response.status);
       const type=(response.headers.get('content-type')||'').toLowerCase();
-      if(!/text\/html|text\/plain|application\/xhtml\+xml/.test(type))throw Error('not readable text');
+      if(!/text\/html|text\/plain|application\/(?:xhtml\+xml|json)/.test(type))throw Error('not readable text');
       const len=Number(response.headers.get('content-length')||0); if(len>this.maxBytes)throw Error('page too large');
       let text;
       if(response.body?.getReader){
@@ -115,7 +125,15 @@ export class FastPageReader{
         try{while(true){const {done,value}=await reader.read();if(done)break;bytes+=value.byteLength;if(bytes>this.maxBytes)throw Error('page too large');chunks.push(value);}text=new TextDecoder().decode(Buffer.concat(chunks));}
         catch(e){await reader.cancel().catch(()=>{});throw e;}finally{reader.releaseLock();}
       }else {text=await response.text();if(Buffer.byteLength(text)>this.maxBytes)throw Error('page too large');}
-      const page=type.includes('text/plain')?{title:'',source:new URL(current).hostname,url:current,date:null,body:query?relevantPassages(text,query,18000):text.slice(0,18000),body_truncated:text.length>18000,description:'',coverage:'page',retrieved_at:new Date().toISOString(),reader:'http-fast'}:extractHtml(text,current,query);
+      if(type.includes('application/json')){
+        const data=JSON.parse(text);text=JSON.stringify(data,null,2);
+        if(new URL(current).hostname==='product-details.mozilla.org'&&new URL(current).pathname==='/1.0/firefox_versions.json'){
+          const channels=[['LATEST_FIREFOX_VERSION','Firefox 桌面穩定版本 stable'],['FIREFOX_ESR','Firefox ESR 原支援分支'],['FIREFOX_ESR_NEXT','Firefox ESR 新支援分支'],['FIREFOX_ESR115','Firefox ESR 115 舊系統分支'],['LATEST_FIREFOX_RELEASED_DEVEL_VERSION','Firefox Beta 測試版'],['FIREFOX_NIGHTLY','Firefox Nightly 開發版']];
+          const lines=channels.filter(([k])=>typeof data[k]==='string'&&/^\d+(?:\.\d+)*(?:esr|[ab]\d+)?$/.test(data[k])).map(([k,label])=>label+'：'+data[k]+'（官方欄位 '+k+'）');
+          text=lines.join('\n')+'\n'+text;
+        }
+      }
+      const page=type.includes('text/plain')||type.includes('application/json')?{title:'',source:new URL(current).hostname,url:current,date:null,body:query?relevantPassages(text,query,18000):text.slice(0,18000),body_truncated:text.length>18000,description:'',coverage:'page',retrieved_at:new Date().toISOString(),reader:'http-fast'}:extractHtml(text,current,query);
       if(page.body.length<220)throw Error('page too short for fast reader');
       return assertReadablePage(page,response.status);
     }

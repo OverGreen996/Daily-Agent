@@ -16,10 +16,11 @@ export const OFFICIAL_DOMAINS = [
   'monsterhunter.com','capcom.co.jp','supergiantgames.com','stardewvalley.net','minecraft.net',
   'warframe.com','gunfiregames.com','bipm.org','ncl.edu.tw','videolan.org','postgresql.org','sqlite.org','pgbouncer.org',
   'docs.github.com','github.blog','mozilla.org','firefox.com','capcom.com',
-  'store.steampowered.com','partner.steamgames.com','astral.sh','factorio.com','teamcherry.com.au'
+  'store.steampowered.com','partner.steamgames.com','astral.sh','factorio.com','teamcherry.com.au','nomanssky.com'
 ];
 // These are routing hints, not stored answers. Unknown games still use discovery.
 export const GAME_SOURCES=[
+ {match:/no\s*man['’]?s\s*sky|無人深空/i,wiki:'nomanssky.fandom.com',official:'nomanssky.com'},
  {match:/\bfactorio\b|異星工廠/i,wiki:'wiki.factorio.com',official:'factorio.com'},
  {match:/\bsilksong\b|絲之歌/i,wiki:'hollowknight.wiki',official:'teamcherry.com.au'},
  {match:/remnant\s*2|遺跡\s*2/i,wiki:'remnant2.wiki.gg',official:'gunfiregames.com'},
@@ -61,6 +62,7 @@ export function routedQueries(query) {
 // These entry points supplement discovery and must still be fetched successfully.
 export function referencePages(query) {
   const q=String(query), pages=[];
+  if(/firefox/i.test(q)&&/版本|latest|release|stable|ESR|穩定/i.test(q)&&!/android|mobile|手機/i.test(q))pages.push({url:'https://product-details.mozilla.org/1.0/firefox_versions.json',title:'Mozilla Firefox desktop official stable release and ESR version channels'});
   if(/node(?:\.js|js)/i.test(q)&&/ERR_REQUIRE_ESM/i.test(q))pages.push({url:'https://nodejs.org/api/modules.html',title:'Node.js CommonJS modules require ECMAScript modules ERR_REQUIRE_ESM'});
   if(/kubernetes/i.test(q)&&/CrashLoopBackOff|重啟|重启/i.test(q))pages.push({url:'https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/',title:'Kubernetes pod lifecycle CrashLoopBackOff container restart'},{url:'https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/',title:'Kubernetes debug running pod kubectl describe logs --previous'});
   const repo=q.match(/\bgithub(?:\.com\/|\s+)([a-z0-9_.-]+)[/\s]+([a-z0-9_.-]+)/i);

@@ -1,0 +1,13 @@
+import path from 'node:path';
+import {pathToFileURL,fileURLToPath} from 'node:url';
+import {selected} from './PluginManager.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const choice=selected(root);
+const {XngCore}=await import(pathToFileURL(path.join(choice.coreDirectory,'Core.js')));
+const {createHubServer}=await import(pathToFileURL(path.join(choice.coreDirectory,'server.js')));
+const core=new XngCore({endpoint:process.env.XNG_SEARXNG_URL||'http://127.0.0.1:8888',stateDir:process.env.XNG_STATE_DIR||path.join(root,'.runtime')});
+const originalStatus=core.status.bind(core);
+core.status=()=>({...originalStatus(),plugin:{id:'xng-search-core',version:choice.version,mode:choice.mode,update_policy:'manual'}});
+const server=createHubServer({core});
+server.listen(Number(process.env.XNG_PORT||8889),'127.0.0.1',()=>console.log('XNG independent search plugin: '+(choice.version||'source')));
+const close=async()=>{server.close();server.closeIdleConnections();await core.close();};process.once('SIGINT',close);process.once('SIGTERM',close);

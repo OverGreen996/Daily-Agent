@@ -1,10 +1,10 @@
 {
     "upstream":  "XNG AI Search Hub",
-    "captured_at":  "2026-10-03T10:59:33.7165496Z",
+    "captured_at":  "2026-10-03T13:27:11.3746208Z",
     "schema":  1,
     "files":  [
                   {
-                      "sha256":  "43fdd7c4dc8373fe79e94a7ceea07701f2bca52c0a71210c5b615df25bae8edb",
+                      "sha256":  "41849aee94e861875ea9ac505f69c7e5f0b7bc802682c40796c4297ca32aa148",
                       "path":  "BrowserAgent.js"
                   },
                   {
@@ -12,7 +12,7 @@
                       "path":  "Client.js"
                   },
                   {
-                      "sha256":  "13e0eb0eaa5e2001a3e710ce170467c302d45e45df8a076f21c3d38f06b1220b",
+                      "sha256":  "bb2fb30f761cae203b9b261e1d962dc20d98afed23e54ab1fa1cef25be7d6a06",
                       "path":  "Core.js"
                   },
                   {
@@ -20,19 +20,19 @@
                       "path":  "domain_overrides.json"
                   },
                   {
-                      "sha256":  "f0c5d131e92f28a781d7f73464574f791607918c3ca7f8e9cf8d62d6f3adb10c",
+                      "sha256":  "59b01703514f7b4b425ee46c3203d0a9514915eba0bff8ecfc9cb05663644b9e",
                       "path":  "Evidence.js"
                   },
                   {
-                      "sha256":  "a827c96d432f8ef40fe11c40183c1f3b04765efc1727b329497eaee278ec290b",
+                      "sha256":  "cf5fbe809a55eb8242c382aca83619176981baea8409b0fbf8bed72f3715b600",
                       "path":  "FastPageReader.js"
                   },
                   {
-                      "sha256":  "936b7a2d8bfeb0dea59ab4f02398e446abe1d3a53c5c6cc9b1389fb1cb9457cb",
+                      "sha256":  "94537a2c8a9fb43b6d4f980904ec5c7711515e1b286f743a20c3370be0e733c6",
                       "path":  "GameSearch.js"
                   },
                   {
-                      "sha256":  "cb384c8f435fe604d1f70e04f71b93cb32a30cfa0a6f3daec363242f53c849bd",
+                      "sha256":  "bc9ea1f15180dc4cb9aa1445473afc7b09cb32ade7b712775ead478689c3a88e",
                       "path":  "GameVersionCheck.js"
                   },
                   {
@@ -44,15 +44,15 @@
                       "path":  "package.json"
                   },
                   {
-                      "sha256":  "ee176ed4196a5e1b6b294c0d1677ac6afac4ca4d8c1c8400ed9a8d38e42faa8d",
+                      "sha256":  "4d8802f8e96119f832d9fd16fab5be303f9d5aff1563d7fbd3263e7144c9a1b7",
                       "path":  "Passages.js"
                   },
                   {
-                      "sha256":  "65efc4d864f3d6f62ca071c4d3db82efb6c841e604b6fa7ecace7b4bfcd35fd9",
+                      "sha256":  "2703513fd2fd1827294b84278b58ae2deb7afd2849c7b0e213f028a7e52f71b8",
                       "path":  "QueryText.js"
                   },
                   {
-                      "sha256":  "2d021249c9de41ca03077588bc9ba8780cb76a5b2e7853811b67b5756aefb2de",
+                      "sha256":  "09dd8b2e6b623a2d9e2f6570100366cd0f4596c0824d274474468930c97cca40",
                       "path":  "SearchFacts.js"
                   },
                   {
@@ -64,11 +64,11 @@
                       "path":  "SearchProvider.js"
                   },
                   {
-                      "sha256":  "20fbe3a347aa647773d299b0aa4f194c8ec46088c2dd3f9dceeb84f435afdaaa",
+                      "sha256":  "49207ca30ac0f9a996699d61ade7fb7e25e0cf446e92718f75d6c7c6ac12f76f",
                       "path":  "SearchQuality.js"
                   },
                   {
-                      "sha256":  "24603effc8ee93d438cb86f6fee6f9732dfde2b59bb7dccb397417a0e128bf41",
+                      "sha256":  "34c339dd7d84c4bad985dd6716307fbe45d4b62a8dfad0a1bdcedd0f048996d8",
                       "path":  "SearXNGProvider.js"
                   },
                   {
@@ -80,11 +80,15 @@
                       "path":  "SourceBudget.js"
                   },
                   {
-                      "sha256":  "df60719d6481299a80b42c1fecd8e0c367740ca70e8d6af440a8c8b07e532120",
+                      "sha256":  "bc27de74e1861752112d3a16cbccd7a1d84a532154f4c04f36f947fb33a1e3a6",
                       "path":  "SourceRegistry.js"
                   },
                   {
-                      "sha256":  "61f928910aba2a60c3aaa37a06530427056b93ba14182869197e7b2c637058d2",
+                      "sha256":  "8b32309a442e96a3bec34fbbe6cf7db60ab3bef00fcdc39133114ff8b254ab73",
+                      "path":  "SteamNews.js"
+                  },
+                  {
+                      "sha256":  "ded895b4635613d9a681fd58118f956cfc7f099ce64309ad960e83087adab261",
                       "path":  "SteamStore.js"
                   }
               ]

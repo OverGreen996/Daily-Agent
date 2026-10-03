@@ -1,6 +1,12 @@
 # XNG 搜尋接入 Daily Agent
 
-本文件對應尚未發布的 0.2.2。Daily Agent 是搜尋服務的使用端；XNG 可以同時供其他程式使用。關閉或卸載 Daily Agent 不會關閉或移除獨立 XNG 的程式、runtime、容器、設定或快取。
+本文件對應 0.2.2 與獨立 XNG 插件。Daily Agent 是搜尋服務的使用端；XNG 可以同時供其他程式使用。關閉或卸載 Daily Agent 不會關閉或移除獨立 XNG 的程式、runtime、容器、設定或快取。
+
+## 獨立插件更新
+
+[Cloudflare 插件站](https://xng-plugins.kentyang1993.workers.dev/) 提供 XNG 核心、管理工具與版本索引。已有獨立 XNG，依 [插件教學](../integrations/xng-plugin/README.md) 安裝管理工具，雙擊 `Open-XNGPlugin.cmd`。「檢查更新」只查看版本，按「安裝已確認的新版」才下載；SHA256 與全部回歸通過才準備切換，再按「重新啟動 XNG」生效。首次可退回原始核心，後續可回復上一插件版本。
+
+公開索引：`https://xng-plugins.kentyang1993.workers.dev/xng-update.json`。其他程式使用同一個 Hub，不必各自更新搜尋演算法。此下載站沒有部署遠端搜尋 API；不同電腦先各自安裝 XNG。既有桌寵 Tunnel 不受此部署影響。
 
 ## 一般使用者
 

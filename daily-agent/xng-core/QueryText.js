@@ -32,7 +32,7 @@ export function searchSubject(value){
  const q=String(value||'').replace(/(?:^|[。；\n])\s*(?:回答|回覆|輸出|摘要)(?:以|請|限|最多|不超過)[^。；\n]*(?:[。；]|$)/g,' ').trim();
  // Separate answer-format and evidence-review instructions from the subject.
  // Original queries remain available for validation, regional and budget checks.
- const boundary=/(?:[，,。；;？?]\s*|\n\s*)(?=(?:請(?:只|優先|核對|核實|確認|不要)|並(?:確認|核對|核實)|優先|核對|核實|區分|列出|只採用|找(?:原始|官方)(?:條件|資料|來源)|不要|不把|別把|以\s*[a-z0-9.-]+\s*(?:下載|發布|文件)|(?:please\s+)?(?:use|verify|cross-check|distinguish)\b))/i;
+ const boundary=/(?:[，,。；;？?]\s*|\n\s*)(?=(?:請(?:只|以|區分|優先|核對|核實|確認|不要)|並(?:確認|核對|核實)|優先|核對|核實|區分|列出|只說明|只說|只採用|找(?:原始|官方)(?:條件|資料|來源)|不要|不把|別把|以\s*[a-z0-9.-]+\s*(?:下載|發布|文件)|(?:please\s+)?(?:use|verify|cross-check|distinguish)\b))/i;
  const at=q.search(boundary);if(at<0)return q;
  const head=q.slice(0,at).trim(),tail=q.slice(at);
  // Explicit versions, platforms and numerical constraints are still search terms.

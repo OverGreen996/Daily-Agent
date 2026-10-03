@@ -37,7 +37,7 @@ export async function safeUrl(value) {
 }
 export function assertReadablePage(page, status = 200) {
   if (status >= 400) throw Error(`網頁 HTTP ${status}，未取得可閱讀內容`);
-  if (/^(just a moment|access denied|attention required|robot check|verify.*human)/i.test(page.title?.trim() || "") ||
+  if (/^(just a moment|access denied|attention required|robot check|client challenge|security verification|verify.*human)/i.test(page.title?.trim() || "") ||
       (page.body?.length < 1800 && /verify (?:that )?you are human|unusual traffic|完成.{0,8}人機驗證/i.test(page.body)))
     throw Error("網站要求驗證，已略過，沒有讀取文章內容");
   if (!page.body?.trim()) throw Error("網頁沒有可讀文字");

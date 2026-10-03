@@ -103,8 +103,28 @@ $null=Label-On $modulesTab '啟用或停用各項功能，儲存後重新啟動�
 $moduleCard=Card-On $modulesTab 4 35 596 253
 $moduleList=New-Object Windows.Forms.CheckedListBox;$moduleList.SetBounds(12,10,572,232);Style-List $moduleList;$moduleList.Font=New-Object Drawing.Font('Microsoft JhengHei UI',10);$moduleCard.Controls.Add($moduleList)
 $moduleInfo=Label-On $modulesTab '' 8 300 584 70
-$moduleSave=Button-On $modulesTab '儲存模組設定' 4 378 292;$moduleSave.Primary=$true
-$moduleRefresh=Button-On $modulesTab '檢查運行狀態' 309 378 292
+$moduleSave=Button-On $modulesTab '儲存模組設定' 4 378 190;$moduleSave.Primary=$true
+$moduleRefresh=Button-On $modulesTab '檢查運行狀態' 207 378 190
+$xngPlugin=Button-On $modulesTab 'XNG 插件更新' 410 378 190
+$xngPlugin.add_Click({
+ if($SelfTest){return}
+ try{
+  $locationFile=Join-Path $runtime 'xng-location.json'
+  $location=$env:DAILY_XNG_ROOT
+  if(!$location){try{$location=(Get-Content -LiteralPath $locationFile -Raw -Encoding UTF8|ConvertFrom-Json).root}catch{}}
+  if(!$location){$location=Join-Path (Split-Path $root -Parent) 'XNG'}
+  if(!(Test-Path -LiteralPath (Join-Path $location 'Manage-XNGPlugin.ps1'))){
+   $folder=New-Object Windows.Forms.FolderBrowserDialog;$folder.Description='選擇已安裝獨立 XNG 的資料夾'
+   try{if($folder.ShowDialog($form) -ne 'OK'){return};$location=$folder.SelectedPath}finally{$folder.Dispose()}
+  }
+  $location=[IO.Path]::GetFullPath($location)
+  $file=Join-Path $location 'Manage-XNGPlugin.ps1'
+  if(!(Test-Path -LiteralPath $file) -or !(Test-Path -LiteralPath (Join-Path $location 'plugins\PluginManager.mjs'))){throw '此資料夾尚未安裝 XNG 插件管理工具，請先依 XNG 接入教學安裝。'}
+  $null=New-Item -ItemType Directory -Path $runtime -Force
+  [IO.File]::WriteAllText($locationFile,(@{root=$location}|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
+  $null=Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -File "'+$file+'"') -WorkingDirectory $location -WindowStyle Hidden -PassThru
+ }catch{$moduleInfo.Text=$_.Exception.Message}
+})
 $script:moduleRows=@()
 function Update-InstallPlan([int]$Changed=-1,[bool]$Checked=$false){
  $ids=@('core')

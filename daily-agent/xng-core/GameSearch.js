@@ -19,10 +19,10 @@ export function gamePlan(query){
  if(!quoted){
   // A numbered title is a useful hint, not proof that the game was identified.
   const numbered=title.match(/^(.{2,60}?\b(?:\d+|II|III|IV|VI|VII|VIII|IX|XI|XII|XVI)\b)(?!\.)/);
-  if(numbered)title=numbered[1];
+  if(numbered&&!/\d\.\d|[\p{Script=Han}]/u.test(numbered[1]))title=numbered[1];
   else {
    const englishPrefix=title.match(/^([A-Za-z0-9][A-Za-z0-9:'’\.\- ]+?)\s+(?=[\p{Script=Han}])/u)?.[1];
-   title=(englishPrefix||title).split(/最新|目前|攻略|初期|新手|品質|配裝|流派|任務|支線|主線|副本|掉落|武器|裝備|技能|解鎖|通關|打法|\b(?:best|latest|current|boss|guide|build|builds|quest|walkthrough|boons|weapon|weapons|ranger|progression|exhaust|breeding|mechanics|quality|healing)\b/i)[0].trim();
+   title=(englishPrefix||title).split(/最新|目前|攻略|初期|新手|品質|配裝|流派|任務|支線|主線|副本|掉落|武器|裝備|技能|解鎖|通關|打法|\b(?:best|latest|current|version|patch|boss|guide|build|builds|quest|walkthrough|boons|weapon|weapons|ranger|progression|exhaust|breeding|mechanics|quality|healing)\b/i)[0].trim();
   }
  }
  title=title.replace(PLATFORM,'').replace(/[?？:：,，]+$/,'').trim().slice(0,80);
@@ -47,11 +47,21 @@ export function gamePlan(query){
 export function gameEvidence(query,results,updateResults=[]){
  const plan=gamePlan(query), pages=(results||[]).filter(r=>r.coverage==='page'||r.coverage==='article');
  const versions=pages.map(r=>({url:r.url,versions:[...new Set((String(r.title)+' '+String(r.body)).match(/(?:version|patch|版本|更新)\s*[:：v]?\s*\d+(?:\.\d+){1,3}/gi)||[])]})).filter(r=>r.versions.length);
- const updates=(updateResults||[]).map(r=>({title:r.title,url:r.url,date:r.date||null,modified_at:r.modified_at||null,coverage:r.coverage,reliability:r.reliability}));
+ const updates=(updateResults||[]).map(r=>({title:r.title,url:r.url,date:r.date||null,modified_at:r.modified_at||null,coverage:r.coverage,reliability:r.reliability,official_feed:r.official_feed===true}));
  // Search results are discovery leads. A timestamp alone cannot prove patch compatibility.
- const checked=updates.some(r=>['page','article'].includes(r.coverage)&&r.reliability==='primary'&&!/wiki\.gg|fandom\.com|\/\/wiki\.|\.wiki\//i.test(r.url)&&/patch|update|hotfix|更新|修正|補丁/i.test(r.title+' '+r.url)&&Number.isFinite(Date.parse(r.modified_at||r.date))&&Date.now()-Date.parse(r.modified_at||r.date)<=180*86400000&&Date.parse(r.modified_at||r.date)<=Date.now());
+ const checked=updates.some(r=>['page','article'].includes(r.coverage)&&r.reliability==='primary'&&!/wiki\.gg|fandom\.com|\/\/wiki\.|\.wiki\//i.test(r.url)&&(r.official_feed||/patch|update|hotfix|更新|修正|補丁|\b\d+(?:\.\d+){1,4}\b/i.test(r.title+' '+r.url))&&Number.isFinite(Date.parse(r.modified_at||r.date))&&Date.now()-Date.parse(r.modified_at||r.date)<=180*86400000&&Date.parse(r.modified_at||r.date)<=Date.now());
  return {plan,guide_pages:pages.length,guide_publishers:[...new Set(pages.map(r=>publisherKey(r.url)))],
   observed_versions:versions,update_sources:updates,update_status:checked?'primary-update-read':'not-verified',
-  compatibility_verified:false,version_check:checkGameVersions(plan,pages,updateResults),
+  compatibility_verified:false,version_check:checkGameVersions(plan,pages,updateResults),subject_check:gameSubjectCheck(query,plan,pages),
   limitations:checked?['更新已讀取；仍須比對更新是否影響本攻略。']:['尚未完整核對最新更新，不能保證舊攻略與目前版本相容。']};
+}
+export function gameSubjectCheck(query,plan,pages){
+ if(plan.goal!=='acquisition'||!plan.title_hint)return {status:'not-applicable'};
+ const escaped=plan.title_hint.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const subject=String(query).replace(new RegExp(escaped,'ig'),' ').replace(/\b(?:PC|Steam|latest|current|version|patch|how|where|to|get|obtain|unlock|the|a|in|game|guide)\b|\b\d+(?:\.\d+)+\b|最新版本|最新|目前|版本|攻略|遊戲|請問|請|幫我|怎麼取得|如何取得|怎麼獲得|在哪裡|哪裡|取得|獲得|解鎖|官方|更新/gi,' ').replace(/[?？:：,，。《》「」]/g,' ').replace(/\s+/g,' ').trim();
+ if(subject.length<3||subject.length>80)return {status:'not-applicable'};
+ const variants=[subject,subject.replace(/品質模組/g,'quality module')];
+ const key=s=>String(s).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+ const matches=pages.filter(r=>variants.some(v=>key(r.body||'').includes(key(v))));
+ return {requested_subject:subject,status:matches.length?'direct-mention-found':'no-direct-mention',source_urls:matches.map(r=>r.url),existence_verified:false,notice:'沒有找到題目所問內容，不能推論該物品或機制不存在；請核對遊戲、道具名稱與平台。'};
 }
