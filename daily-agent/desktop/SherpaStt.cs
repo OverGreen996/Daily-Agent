@@ -11,8 +11,8 @@ namespace DailyPet {
     readonly string root;readonly JavaScriptSerializer json=new JavaScriptSerializer();readonly object gate=new object();
     Process process;WaveInput input;Thread capture;ManualResetEventSlim ready;volatile bool running;Action<string> heard;Action<string> failed;string errors="";
     public SherpaStt(string root){this.root=root;}
-    string ModelDir{get{return Path.Combine(root,".daily-runtime","stt","sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30");}}
-    public bool Available{get{return File.Exists(Path.Combine(ModelDir,"encoder.int8.onnx"))&&File.Exists(Path.Combine(root,"daily-agent","scripts","sherpa-stt.cjs"));}}
+    string ModelDir{get{return RuntimePaths.Get(root,"stt","sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30");}}
+    public bool Available{get{return !String.IsNullOrWhiteSpace(root)&&File.Exists(Path.Combine(ModelDir,"encoder.int8.onnx"))&&File.Exists(Path.Combine(root,"daily-agent","scripts","sherpa-stt.cjs"));}}
     public void Start(string inputId,Action<string> onHeard,Action<string> onFailed){
       if(running)return;if(!Available)throw new InvalidOperationException("Sherpa 中文語音辨識模型尚未安裝完整。");heard=onHeard;failed=onFailed;ready=new ManualResetEventSlim(false);errors="";
       var info=new ProcessStartInfo("node.exe","\""+Path.Combine(root,"daily-agent","scripts","sherpa-stt.cjs")+"\" --worker"){WorkingDirectory=root,UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};

@@ -1,6 +1,8 @@
 param([int]$AgentProcessId, [switch]$IncludePetUI)
 $ErrorActionPreference = 'Stop'
-$runtimeDir = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) '.daily-runtime'
+$projectRoot=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+. (Join-Path $projectRoot 'Daily-SetupState.ps1')
+$runtimeDir = Get-DailyRuntimePath $projectRoot
 $roots = @($AgentProcessId, [int](Get-Content (Join-Path $runtimeDir 'ollama.pid')))
 if ($IncludePetUI -and (Test-Path (Join-Path $runtimeDir 'pet.pid'))) { $roots += [int](Get-Content (Join-Path $runtimeDir 'pet.pid')) }
 $allProcesses = @(Get-CimInstance Win32_Process)

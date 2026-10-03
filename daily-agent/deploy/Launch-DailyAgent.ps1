@@ -12,6 +12,8 @@ if($state.current -notmatch '^[a-zA-Z0-9._-]+$' -or $state.dataFormat -ne 1){thr
 $release=Join-Path $PSScriptRoot ('releases\'+$state.current)
 if(!(Test-Path -LiteralPath (Join-Path $release 'Open-DailyPet.ps1'))){throw 'Release is missing'}
 if($NoLaunch){Write-Output $release;return}
+. (Join-Path $release 'Daily-SetupState.ps1')
+if(!(Get-DailyReadiness $release).ready){& (Join-Path $PSScriptRoot 'Setup-DailyAgent.ps1') -AutoSetup;return}
 $env:DAILY_DATA=Join-Path $PSScriptRoot 'data'
 $env:PATH=(Join-Path $release 'vendor\node')+';'+$env:PATH
 try{$exitEvent=[Threading.EventWaitHandle]::OpenExisting('Local\DailyPetExit3210');$null=$exitEvent.Set();$exitEvent.Dispose();Start-Sleep -Milliseconds 500}catch [Threading.WaitHandleCannotBeOpenedException]{}

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import {setupProgress} from './SetupProgress.js';
 const url = "http://127.0.0.1:11435";
 const installed = await fetch(url + '/api/tags').then(r => {if(!r.ok)throw Error('Ollama unavailable');return r.json();});
 for (const model of ["qwen3.5:4b", "embeddinggemma"]) {
@@ -22,6 +23,7 @@ for (const model of ["qwen3.5:4b", "embeddinggemma"]) {
       if (!line.trim()) continue;
       const e = JSON.parse(line);
       if (e.error) throw Error(e.error);
+      setupProgress(model==='embeddinggemma'?'記憶檢索模型':'基本聊天模型',e);
       if (Date.now() - last > 5000 || e.status === "success") {
         console.log(
           model,

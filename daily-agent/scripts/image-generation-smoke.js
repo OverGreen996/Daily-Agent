@@ -4,12 +4,14 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {ComfyUIImageRuntime} from '../models/ImageGeneration.js';
+import {runtimePath} from '../core/RuntimePaths.cjs';
 
 const exec=promisify(execFile),here=path.dirname(fileURLToPath(import.meta.url)),project=path.resolve(here,'../..');
 async function gpu(){const {stdout}=await exec('nvidia-smi.exe',['--query-gpu=memory.used','--format=csv,noheader,nounits']);return Number(stdout.trim().split(/\s+/)[0]);}
-const root=path.join(project,'.daily-runtime','ComfyUI_windows_portable');
-const checkpoint=path.join(root,'ComfyUI','models','checkpoints','NoobAI-XL-v1.1.safetensors');
+const root=runtimePath('ComfyUI_windows_portable');
+const checkpoint=path.join(root,'ComfyUI','models','checkpoints','NoobAI-XL-Vpred-v1.0-cyberfix-perpendicular.safetensors');
 const runtime=new ComfyUIImageRuntime({root,checkpoint,outputDir:path.join(project,'daily-agent','test-output','generated-images'),port:8189});
+runtime.setProfile('quality');
 const report={started_at:new Date().toISOString(),before_vram_mib:await gpu()};
 try{
   await runtime.load();report.loaded_vram_mib=await gpu();

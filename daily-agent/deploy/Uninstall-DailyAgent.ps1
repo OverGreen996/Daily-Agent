@@ -66,7 +66,7 @@ function Remove-OwnedTree([string]$target){
  else{Remove-Item -LiteralPath $full -Force}
 }
 $shell=New-Object -ComObject WScript.Shell
-foreach($name in @('Daily Agent.lnk','Daily Agent Setup.lnk','Daily Agent Uninstall.lnk')){
+foreach($name in @('Daily Agent.lnk','Daily Agent Setup.lnk','Daily Agent Uninstall.lnk','Daily Agent 功能與設定.lnk')){
  $shortcut=Join-Path ([Environment]::GetFolderPath('Desktop')) $name
  if(Test-Path -LiteralPath $shortcut){$link=$shell.CreateShortcut($shortcut);if($link.Arguments.IndexOf($prefix,[StringComparison]::OrdinalIgnoreCase) -ge 0){Remove-Item -LiteralPath $shortcut -Force}}
 }

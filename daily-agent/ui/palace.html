@@ -1,1 +1,11 @@
-<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="daily-token" content="__TOKEN__"><title>記憶宮殿 · Daily Agent</title><link rel="stylesheet" href="/palace.css"><main><p class="eyebrow">DAILY AGENT · MEMORY PALACE</p><h1>記憶宮殿</h1><p class="intro">每一本書保留完整對話。這裡只顯示你正在查看的頁面。</p><form id="query"><input id="input" aria-label="搜尋記憶宮殿" placeholder="輸入主題搜尋，或輸入「下一頁」、「上一頁」、「回宮殿」"></form><p id="status" role="status"></p><section id="pins"></section><section id="books"></section><article id="detail"></article></main><script src="/palace.js"></script></html>
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="daily-token" content="__TOKEN__"><title>記憶宮殿 · Daily Agent</title><link rel="stylesheet" href="/palace.css"><main><p class="eyebrow">DAILY AGENT · MEMORY PALACE</p><h1>記憶宮殿</h1><p class="intro">每一本書保留完整對話。這裡只顯示你正在查看的頁面。</p>
+<details id="drive-backup"><summary>Google 帳號與 Drive 備份</summary>
+<p>備份記憶對話、姓名喜好、行程及待辦。圖片、模型、生圖提示詞與登入憑證不包含在備份。</p>
+<p id="drive-status" role="status">正在檢查備份模組…</p>
+<div class="drive-actions"><button id="drive-login">登入 Google</button><button id="drive-now">立即備份</button><button id="drive-list">查看雲端備份</button><button id="drive-disconnect">解除登入</button></div>
+<label class="drive-auto"><input id="drive-auto" type="checkbox">每日自動備份（電腦開著且已登入時）</label>
+<p>使用你的 Drive 應用程式資料夾；一般 Drive 檔案列表看不到，請從這裡查看。下載備份不會覆寫目前記憶。</p>
+<div id="drive-files"></div><p id="drive-message" role="status"></p>
+<details id="drive-setup"><summary>第一次設定 Google 登入</summary><p>尚未配置用戶端時，先依 <a href="/drive-guide" target="_blank" rel="noopener">Google Cloud 中文教學</a> 建立 Desktop app，再匯入下載的 JSON。這不會上传 JSON 到 Google，登入設定只加密保存在本機。</p><label>Google Desktop 用戶端 JSON <input id="drive-client" type="file" accept=".json,application/json"></label></details>
+</details>
+<form id="query"><input id="input" aria-label="搜尋記憶宮殿" placeholder="輸入主題搜尋，或輸入「下一頁」、「上一頁」、「回宮殿」"></form><p id="status" role="status"></p><section id="pins"></section><section id="books"></section><article id="detail"></article></main><script src="/palace.js"></script><script src="/drive-backup.js"></script></html>

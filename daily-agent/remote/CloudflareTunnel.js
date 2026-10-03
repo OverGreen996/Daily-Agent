@@ -1,11 +1,12 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { runtimePath } from "../core/RuntimePaths.cjs";
 export class CloudflareTunnel {
   constructor(
     gateway,
     {
-      binary = path.resolve("../.daily-runtime/cloudflared/cloudflared.exe"),
+      binary = runtimePath("cloudflared", "cloudflared.exe"),
     } = {},
   ) {
     this.gateway = gateway;

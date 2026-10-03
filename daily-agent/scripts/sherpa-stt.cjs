@@ -1,3 +1,4 @@
+const {runtimePath}=require('../core/RuntimePaths.cjs');
 const path=require('path');
 const readline=require('readline');
 const sherpa=require('sherpa-onnx-node');
@@ -5,7 +6,7 @@ const OpenCC=require('opencc-js');
 const traditional=OpenCC.Converter({from:'cn',to:'tw'});
 
 const root=path.resolve(__dirname,'../..');
-const model=path.join(root,'.daily-runtime','stt','sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30');
+const model=runtimePath('stt','sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30');
 const hotwords=path.join(model,'daily-agent-hotwords.txt');
 function recognizer(){
   return new sherpa.OnlineRecognizer({

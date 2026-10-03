@@ -5,7 +5,7 @@ import { createAgent } from "../core/createAgent.js";
 import { SystemTools, run } from "../tools/BasicTools.js";
 const output = path.resolve("test-output");
 fs.mkdirSync(output, { recursive: true });
-const agent = createAgent({
+const agent =await createAgent({
   dataDir: path.join(output, "smoke-" + Date.now()),
   perception: false,
   lightLookup: false,

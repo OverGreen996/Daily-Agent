@@ -1,10 +1,11 @@
 param([switch]$SkipAgentStart,[int]$Port=3210)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Daily-SetupState.ps1')
 $projectDir=$PSScriptRoot
 if(!$SkipAgentStart) { & (Join-Path $projectDir 'Start-DailyAgent.ps1') -NoBrowser }
 $exe = & (Join-Path $projectDir 'daily-agent\desktop\Build-Pet.ps1')
 $exe = @($exe)[-1]
-$runtimeDir=Join-Path $projectDir '.daily-runtime'
+$runtimeDir=Get-DailyRuntimePath $PSScriptRoot
 $pidFile=Join-Path $runtimeDir ('pet-'+$Port+'.pid')
 if(Test-Path -LiteralPath $pidFile) {
   $previous=Get-Process -Id ([int](Get-Content $pidFile)) -ErrorAction SilentlyContinue

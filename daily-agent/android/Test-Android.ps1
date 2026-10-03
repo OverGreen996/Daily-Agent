@@ -1,4 +1,4 @@
-param([switch]$Build)
+﻿param([switch]$Build,[switch]$ValidateOnly)
 $ErrorActionPreference='Stop'
 $workspace=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $tools=Join-Path $workspace '.daily-runtime\android-build'
@@ -12,5 +12,5 @@ foreach($test in $tests){
   & (Join-Path $jdk 'bin\java.exe') -cp $classes $test.BaseName
   if($LASTEXITCODE -ne 0){throw ($test.BaseName+' failed')}
 }
-if($Build){& (Join-Path $PSScriptRoot 'Build-Android.ps1')}
+if($Build){& (Join-Path $PSScriptRoot 'Build-Android.ps1') -ValidateOnly:$ValidateOnly}
 Write-Output 'Host rules passed. Android device/UI acceptance remains a separate test.'

@@ -454,7 +454,7 @@ namespace DailyPet {
     bool showHistory;
     readonly VoiceController voice=new VoiceController();
     readonly NotificationController notifications=new NotificationController();
-    bool voiceReply,voiceListening;
+    bool voiceReply,voiceListening,voiceModuleEnabled=true;
     string lastReadReplyId="",lastReadText="";DateTime lastReadAt=DateTime.MinValue;
     string replyStreamId="",completedStreamId="",streamPrefix="",streamText="",speechStreamId="",speechPending="";
     ToolStripMenuItem appearanceMenu;
@@ -476,14 +476,14 @@ namespace DailyPet {
       voice.Root=root;
       Text=petName+"桌寵"; FormBorderStyle=FormBorderStyle.None; ShowInTaskbar=false; TopMost=true;
       StartPosition=FormStartPosition.Manual; ClientSize=new System.Drawing.Size(192,208);
-      positionFile=Path.Combine(root,".daily-runtime","native-pet","position-"+new Uri(url).Port+".json");
-      settingsFile=Path.Combine(root,".daily-runtime","native-pet","settings-"+new Uri(url).Port+".json");
+      positionFile=RuntimePaths.Get(root,"native-pet","position-"+new Uri(url).Port+".json");
+      settingsFile=RuntimePaths.Get(root,"native-pet","settings-"+new Uri(url).Port+".json");
       Rectangle screen=Screen.PrimaryScreen.WorkingArea; Location=new Point(screen.Right-Width-36,screen.Bottom-Height+28);
       try { if(File.Exists(positionFile)) { var p=Json.Decode(File.ReadAllText(positionFile)); Location=new Point(Convert.ToInt32(p["x"]),Convert.ToInt32(p["y"])); } } catch {}
       Clamp(); bubble=new Bubble(petName); bubble.Submitted=Submit; api=new Api(url);
       bubble.GeneratedImageClicked=delegate{try{if(generatedImagePath.Length>0&&File.Exists(generatedImagePath))System.Diagnostics.Process.Start(generatedImagePath);}catch(Exception e){ShowText("無法開啟圖片："+e.Message,false);}};
       bubble.PetBounds=delegate { return Bounds; };
-      LoadPetSettings(); if(connect)showHistory=false; BuildMenu(); bubble.UseContextMenu(petMenu);
+      LoadPetSettings(); voiceModuleEnabled=VoiceModuleEnabled();if(!voiceModuleEnabled){voiceReply=false;voiceListening=false;} if(connect)showHistory=false; BuildMenu(); bubble.UseContextMenu(petMenu);
       bubble.MessageChanged=ArmMessageExpiry;messageExpiry.Tick+=delegate{messageExpiry.Stop();if(!showHistory)bubble.Hide();};
       bubble.VisibleChanged+=delegate{if(bubble.Visible)ArmMessageExpiry();};
       FormClosed+=delegate{messageExpiry.Stop();messageExpiry.Dispose();};
@@ -529,29 +529,31 @@ namespace DailyPet {
     }
     void BuildMenu() {
       petMenu.Font=Bubble.TextFont(10);
-      petMenu.Items.Add("框選活動區域…",null,delegate{BeginSelectArea();});
-      wanderItem=new ToolStripMenuItem("在區域內自由走動");wanderItem.Click+=delegate{SetWandering(!wander.Enabled);};petMenu.Items.Add(wanderItem);
-      petMenu.Items.Add("清除活動區域",null,delegate{wander.Enabled=false;wander.Area=Rectangle.Empty;wander.Pause(Clock);SavePetSettings();});
+      petMenu.Items.Add("功能與設定（含模組管理器）",null,delegate{OpenFeatureManager();});
+      var settings=new ToolStripMenuItem("外觀與動作");
+      settings.DropDownItems.Add("框選活動區域…",null,delegate{BeginSelectArea();});
+      wanderItem=new ToolStripMenuItem("在區域內自由走動");wanderItem.Click+=delegate{SetWandering(!wander.Enabled);};settings.DropDownItems.Add(wanderItem);
+      settings.DropDownItems.Add("清除活動區域",null,delegate{wander.Enabled=false;wander.Area=Rectangle.Empty;wander.Pause(Clock);SavePetSettings();});
       var actions=new ToolStripMenuItem("寵物動作");
       string[] labels={"揮手","跳一下"};
       string[] states=PetAnimations.AmbientNames;
       for(int i=0;i<labels.Length;i++){string state=states[i];actions.DropDownItems.Add(labels[i],null,delegate{PlayGesture(state,3);});}
-      petMenu.Items.Add(actions);petMenu.Items.Add(new ToolStripSeparator());
-      var settings=new ToolStripMenuItem("設定");
+      settings.DropDownItems.Add(actions);
+      var audio=new ToolStripMenuItem("語音"){Enabled=voiceModuleEnabled};
       topItem=new ToolStripMenuItem("保持置頂"); topItem.Click+=delegate { SetTopMost(!TopMost); };
       animationItem=new ToolStripMenuItem("播放動畫"); animationItem.Click+=delegate { SetAnimation(!animate); };
       settings.DropDownItems.Add(topItem); settings.DropDownItems.Add(animationItem);
       followPointerItem=new ToolStripMenuItem("跟隨滑鼠視線（16 方向）");followPointerItem.Click+=delegate{SetFollowPointer(!followPointer);};settings.DropDownItems.Add(followPointerItem);
       varietyItem=new ToolStripMenuItem("自主小動作");varietyItem.Click+=delegate{variety=!variety;gesture="";nextGesture=Clock+12;SavePetSettings();};settings.DropDownItems.Add(varietyItem);
-      settings.DropDownItems.Add("開啟／停止語音聆聽",null,delegate{SetListening(!voice.Listening);});
-      settings.DropDownItems.Add("測試麥克風（3 秒）",null,async delegate{await TestMicrophone();});
-      settings.DropDownItems.Add("開啟／關閉語音回覆",null,async delegate{await SetVoiceReply(!voiceReply);});
-      foreach(bool input in new[]{true,false}){bool isInput=input;var devices=new ToolStripMenuItem(input?"接收麥克風":"語音播放裝置");devices.DropDownItems.Add("載入裝置…");devices.DropDownOpening+=delegate{BuildAudioMenu(devices,isInput);};settings.DropDownItems.Add(devices);}
-      var engines=new ToolStripMenuItem("TTS 引擎");engines.DropDownOpening+=delegate{BuildTtsEngineMenu(engines);};settings.DropDownItems.Add(engines);
-      var speechSpeed=new ToolStripMenuItem("說話速度");speechSpeed.DropDownOpening+=delegate{BuildSpeechSpeedMenu(speechSpeed);};settings.DropDownItems.Add(speechSpeed);
-      settings.DropDownItems.Add("測試語音播放",null,delegate{TestVoiceOutput();});
-      var voices=new ToolStripMenuItem("TTS 聲線（Windows）");voices.DropDownItems.Add("載入聲線…");voices.DropDownOpening+=delegate{BuildVoiceMenu(voices);};settings.DropDownItems.Add(voices);
-      var kokoroVoices=new ToolStripMenuItem("Kokoro 聲線");kokoroVoices.DropDownOpening+=delegate{BuildKokoroVoiceMenu(kokoroVoices);};settings.DropDownItems.Add(kokoroVoices);
+      audio.DropDownItems.Add("開啟／停止語音聆聽",null,delegate{SetListening(!voice.Listening);});
+      audio.DropDownItems.Add("測試麥克風（3 秒）",null,async delegate{await TestMicrophone();});
+      audio.DropDownItems.Add("開啟／關閉語音回覆",null,async delegate{await SetVoiceReply(!voiceReply);});
+      foreach(bool input in new[]{true,false}){bool isInput=input;var devices=new ToolStripMenuItem(input?"接收麥克風":"語音播放裝置");devices.DropDownItems.Add("載入裝置…");devices.DropDownOpening+=delegate{BuildAudioMenu(devices,isInput);};audio.DropDownItems.Add(devices);}
+      var engines=new ToolStripMenuItem("TTS 引擎");engines.DropDownOpening+=delegate{BuildTtsEngineMenu(engines);};audio.DropDownItems.Add(engines);
+      var speechSpeed=new ToolStripMenuItem("說話速度");speechSpeed.DropDownOpening+=delegate{BuildSpeechSpeedMenu(speechSpeed);};audio.DropDownItems.Add(speechSpeed);
+      audio.DropDownItems.Add("測試語音播放",null,delegate{TestVoiceOutput();});
+      var voices=new ToolStripMenuItem("TTS 聲線（Windows）");voices.DropDownItems.Add("載入聲線…");voices.DropDownOpening+=delegate{BuildVoiceMenu(voices);};audio.DropDownItems.Add(voices);
+      var kokoroVoices=new ToolStripMenuItem("Kokoro 聲線");kokoroVoices.DropDownOpening+=delegate{BuildKokoroVoiceMenu(kokoroVoices);};audio.DropDownItems.Add(kokoroVoices);
       historyItem=new ToolStripMenuItem("顯示歷史對話") { Checked=showHistory };
       historyItem.Click+=delegate { SetHistory(!showHistory); }; settings.DropDownItems.Add(historyItem);
       translucentItem=new ToolStripMenuItem("半透明泡泡") { Checked=bubble.Opacity<1 };
@@ -565,7 +567,8 @@ namespace DailyPet {
       // Populate once so WinForms displays the submenu arrow before opening.
       RebuildAppearanceMenu(); settings.DropDownItems.Add(appearanceMenu);
       settings.DropDownItems.Add("傳送外觀到手機",null,async delegate { await TransferAppearance(); });
-      petMenu.Items.Add(settings);
+      settings.DropDownItems.Add("寵物外觀編輯器…",null,delegate { EditAppearance(); });
+      petMenu.Items.Add(settings);petMenu.Items.Add(audio);
       toggleBubbleItem=new ToolStripMenuItem("收起聊天泡泡");
       toggleBubbleItem.Click+=delegate { if(bubble.Visible) bubble.Hide(); else OpenBubbleForInput(); };
       petMenu.Items.Add(toggleBubbleItem); petMenu.Items.Add(new ToolStripSeparator());
@@ -587,6 +590,20 @@ namespace DailyPet {
         clearImageItem.Visible=pendingImage!=null || pendingDocument!=null; clearImageItem.Enabled=!busy && !preparingImage;
         clearImageItem.Text=pendingDocument!=null ? "移除待傳文件" : "移除待傳圖片";
       };
+    }
+    void OpenFeatureManager(){
+      try {
+        string script=Path.Combine(projectRoot,"Open-DailyManager.ps1");
+        var info=new System.Diagnostics.ProcessStartInfo("powershell.exe","-NoProfile -ExecutionPolicy Bypass -File \""+script+"\"");
+        info.UseShellExecute=false;info.CreateNoWindow=true;info.WindowStyle=System.Diagnostics.ProcessWindowStyle.Hidden;
+        System.Diagnostics.Process.Start(info);
+      }catch(Exception e){ShowText("無法開啟功能設定："+e.GetBaseException().Message);}
+    }
+    bool VoiceModuleEnabled(){
+      if(!File.Exists(Path.Combine(projectRoot,"daily-agent","features","voice","index.js")))return false;
+      string directory=Environment.GetEnvironmentVariable("DAILY_DATA");if(String.IsNullOrEmpty(directory))directory=Path.Combine(projectRoot,"daily-agent","data");
+      string file=Path.Combine(directory,"modules.json");if(!File.Exists(file))return true;
+      try{var settings=Json.Decode(File.ReadAllText(file));if(!settings.ContainsKey("enabled"))return true;var enabled=settings["enabled"] as Dictionary<string,object>;return enabled==null||!enabled.ContainsKey("voice")||!Object.Equals(enabled["voice"],false);}catch{return false;}
     }
     void BuildAudioMenu(ToolStripMenuItem menu,bool input){
       menu.DropDownItems.Clear();string selected=input?voice.InputDeviceId:voice.OutputDeviceId;
@@ -612,9 +629,9 @@ namespace DailyPet {
     }
     void BuildSpeechSpeedMenu(ToolStripMenuItem menu){menu.DropDownItems.Clear();foreach(double speed in new[]{.7,.85,1.0,1.15,1.3,1.4}){double value=speed;var item=new ToolStripMenuItem(speed.ToString("0.##")+"×"){Checked=Math.Abs(voice.SpeechSpeed-speed)<.001};item.Click+=delegate{SetSpeechSpeed(value);};menu.DropDownItems.Add(item);}}
     void SetSpeechSpeed(double speed){voice.SetSpeechSpeed(speed);SavePetSettings();ShowText("說話速度已調整為 "+voice.SpeechSpeed.ToString("0.##")+" 倍。");}
-    void TestVoiceOutput(){try{voice.SayPreview("你好，我是"+petName+"。這是目前選擇的語音播放裝置。");}catch(Exception e){ShowText("語音播放失敗："+e.GetBaseException().Message);}}
+    void TestVoiceOutput(){if(!voiceModuleEnabled){ShowText("語音模組已停用。");return;}try{voice.SayPreview("你好，我是"+petName+"。這是目前選擇的語音播放裝置。");}catch(Exception e){ShowText("語音播放失敗："+e.GetBaseException().Message);}}
     async Task WarmVoice(bool announce){try{if(announce)ShowHint("Kokoro 正在暖機…");await voice.WarmKokoro();if(announce){ShowHint("Kokoro 已暖機，接下來的語音回覆會直接使用 CPU 產生。");voice.Say("語音回覆已經開啟，現在聽得到我嗎？");}}catch(Exception e){voiceReply=false;voice.UnloadTts();SavePetSettings();ShowText("Kokoro 暖機失敗，語音回覆已關閉："+e.GetBaseException().Message,false);}}
-    async Task SetVoiceReply(bool enabled){voiceReply=enabled;SavePetSettings();if(!enabled){voice.UnloadTts();ShowText("語音回覆已關閉，Kokoro 已卸載。",false);return;}if(voice.TtsEngine=="kokoro")await WarmVoice(true);else {ShowText("語音回覆已開啟。",false);voice.Say("語音回覆已經開啟，現在聽得到我嗎？");}}
+    async Task SetVoiceReply(bool enabled){if(enabled&&!voiceModuleEnabled){ShowText("語音模組已停用。");return;}voiceReply=enabled;SavePetSettings();if(!enabled){voice.UnloadTts();ShowText("語音回覆已關閉，Kokoro 已卸載。",false);return;}if(voice.TtsEngine=="kokoro")await WarmVoice(true);else {ShowText("語音回覆已開啟。",false);voice.Say("語音回覆已經開啟，現在聽得到我嗎？");}}
     async Task TransferAppearance(){
       try{
         int cellW=appearance.Animated?Math.Min(128,appearance.CellWidth):Math.Min(512,appearance.Image.Width);
@@ -726,6 +743,14 @@ namespace DailyPet {
       if(importing || exiting) return;
       try { ApplyAppearance(library.Load(id)); SavePetSettings(); }
       catch(Exception e) { bubble.Say("無法載入這個形象："+e.Message+"\n目前的形象已保留。"); OpenBubbleForInput(); }
+    }
+    void EditAppearance() {
+      if(importing||exiting)return;
+      importing=true;wander.Pause(Clock);bool restore=bubble.Visible;bubble.Hide();
+      try {using(var editor=new PetAppearanceEditor(library,appearance,false,api)){
+        if(editor.ShowDialog(this)==DialogResult.OK&&editor.Saved!=null){ApplyAppearance(editor.Saved);SavePetSettings();}
+      }}catch(Exception e){MessageBox.Show(this,e.Message,"寵物外觀編輯器");}
+      finally {importing=false;if(restore)bubble.Show(this);}
     }
     void ApplyAppearance(PetAppearance next) {
       var previous=appearance; appearance=next; petName=next.Name; phase=0;gesture="";wander.Pause(Clock);
@@ -884,10 +909,11 @@ namespace DailyPet {
     bool FinishStreamSpeech(string id){if(id.Length==0||id!=speechStreamId)return false;foreach(string part in SpeechChunker.Push(ref speechPending,"",true))voice.QueueResponseSpeech(part);voice.EndResponseSpeech();lastReadReplyId=id;lastReadText=streamText;lastReadAt=DateTime.UtcNow;speechStreamId="";speechPending="";return true;}
     void ReadReply(string text,string id){if(!voiceReply||String.IsNullOrWhiteSpace(text))return;if(id.Length>0&&id==lastReadReplyId)return;if(id.Length==0&&text==lastReadText&&(DateTime.UtcNow-lastReadAt).TotalSeconds<3)return;try{voice.Say(text);lastReadReplyId=id;lastReadText=text;lastReadAt=DateTime.UtcNow;}catch(Exception e){bubble.Say(text+"\n語音輸出失敗："+e.Message);}}
     void SetListening(bool enabled,bool announce=true){
+      if(enabled&&!voiceModuleEnabled){ShowText("語音模組已停用。");return;}
       try{if(enabled){voice.WakeName=petName;voice.RequireWakeName=false;voice.Start();voiceListening=true;SavePetSettings();if(announce)ShowHint("麥克風已開啟，可以直接說問題，也可以先叫「"+petName+"」。說「關閉麥克風」可停止聆聽。");}else{voice.Stop();voiceListening=false;SavePetSettings();if(announce)ShowHint("麥克風已關閉。");}}
       catch(Exception e){voiceListening=false;SavePetSettings();ShowText("無法開啟語音："+e.Message,false);}
     }
-    async Task TestMicrophone(){try{ShowText("接下來三秒請對著麥克風說話…",false);await Task.Delay(700);var level=await voice.MeasureInput();string result=level.Peak<.01?"幾乎沒有收到聲音，請檢查麥克風音量或裝置選擇。":level.Peak>.98?"有收到聲音，但音量已經削波，請把麥克風增益調低。":"有正常收到聲音。";ShowText(result+" 峰值 "+Math.Round(level.Peak*100)+"%，平均 "+Math.Round(level.RmsDb,1)+" dBFS。",false);}catch(Exception e){ShowText("麥克風測試失敗："+e.GetBaseException().Message,false);}}
+    async Task TestMicrophone(){if(!voiceModuleEnabled){ShowText("語音模組已停用。");return;}try{ShowText("接下來三秒請對著麥克風說話…",false);await Task.Delay(700);var level=await voice.MeasureInput();string result=level.Peak<.01?"幾乎沒有收到聲音，請檢查麥克風音量或裝置選擇。":level.Peak>.98?"有收到聲音，但音量已經削波，請把麥克風增益調低。":"有正常收到聲音。";ShowText(result+" 峰值 "+Math.Round(level.Peak*100)+"%，平均 "+Math.Round(level.RmsDb,1)+" dBFS。",false);}catch(Exception e){ShowText("麥克風測試失敗："+e.GetBaseException().Message,false);}}
     void ChangeSize(int delta) { int w=Math.Max(144,Math.Min(384,Width+delta)); ClientSize=new System.Drawing.Size(w,w*208/192); ReconcileArea();Clamp(); PositionBubble(); Render(); SavePetSettings(); }
     async Task QuitAgent() {
       if(exiting) return;
@@ -1018,6 +1044,7 @@ namespace DailyPet {
       if(command=="開啟語音" || command=="開始聆聽" || command=="開啟麥克風"){SetListening(true);return;}
       if(command=="傳送外觀到手機" || command=="把寵物傳到手機"){await TransferAppearance();return;}
       if(command=="儲存剛才的圖片"||command=="儲存剛剛的圖片"||command=="另存剛才的圖片"||command=="保存剛才的圖片"){SaveGeneratedImage();return;}
+      if(command=="設定" || command=="功能與設定" || command=="模組管理器" || command=="打開設定"){OpenFeatureManager();return;}
       if(command=="連接PocketDrop" || command=="連接 PocketDrop" || command=="PocketDrop設定" || command=="PocketDrop 設定"){api.OpenPocketDrop();ShowText("PocketDrop 配對頁已打開，請選取邀請 QR 圖片。");return;}
       if(command=="打開記憶宮殿" || command=="開啟記憶宮殿" || command=="打開記憶書架" || command=="開啟記憶書架"){api.OpenPalace();ShowText("記憶宮殿已打開，可以搜尋主題和閱讀原始對話。");return;}
       if(command=="開啟通知提醒"){try{await notifications.Start();ShowText("通知提醒已開啟，只提示來源程式，不讀取通知內文。");}catch(Exception e){ShowText("通知提醒尚未啟用："+e.Message+"\n若 Windows 要求套件身分，請先依 desktop/notification-package/README.md 安裝通知身分套件。");}return;}
@@ -1028,6 +1055,7 @@ namespace DailyPet {
       if(command=="泡泡半透明" || command=="開啟半透明泡泡") { SetTranslucent(true); return; }
       if(command=="泡泡不透明" || command=="關閉半透明泡泡") { SetTranslucent(false); return; }
       if(command=="更換寵物形象" || command=="載入寵物形象") { await PickAppearance(); return; }
+      if(command=="寵物外觀編輯器" || command=="編輯寵物外觀") { EditAppearance(); return; }
       if(command=="換回露米" || command=="使用內建露米") { SelectAppearance("lumi"); return; }
       if(command=="顯示歷史對話" || command=="開啟歷史對話") { SetHistory(true); return; }
       if(command=="隱藏歷史對話" || command=="關閉歷史對話") { SetHistory(false); return; }
@@ -1463,11 +1491,22 @@ namespace DailyPet {
   }
   static class Program {
     [STAThread] static int Main(string[] args) {
-      AppDomain.CurrentDomain.UnhandledException+=delegate(object sender,UnhandledExceptionEventArgs e) { try { File.WriteAllText(Path.Combine(args[0],".daily-runtime","native-pet-error.log"),Convert.ToString(e.ExceptionObject)); } catch {} };
+      AppDomain.CurrentDomain.UnhandledException+=delegate(object sender,UnhandledExceptionEventArgs e) { try { File.WriteAllText(RuntimePaths.Get(args[0],"native-pet-error.log"),Convert.ToString(e.ExceptionObject)); } catch {} };
       try {
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
         Native.SetProcessDPIAware(); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         if(args.Length<2) throw new ArgumentException("Expected project root and localhost URL");
+        if(args.Length>3&&args[2]=="--editor-test"){PetAppearanceEditor.SelfTest(args[0],args[3]);return 0;}
+        if(args.Length>2&&args[2]=="--appearance-editor"){
+          var library=new PetLibrary(args[0]);
+          string selected="lumi";
+          try{selected=Json.Text(Json.Decode(File.ReadAllText(RuntimePaths.Get(args[0],"native-pet","settings-"+new Uri(args[1]).Port+".json"))),"appearanceId");}catch{}
+          PetAppearance current;
+          try{current=library.Load(selected);}catch{current=library.Load("lumi");}
+          using(var localApi=new Api(args[1]))using(current)using(var editor=new PetAppearanceEditor(library,current,true,localApi)){
+            Application.Run(editor);if(editor.Saved!=null)editor.Saved.Dispose();
+          }return 0;
+        }
         string port=new Uri(args[1]).Port.ToString(); bool created;
         if(args.Length>2 && args[2]=="--exit") { try { EventWaitHandle.OpenExisting("Local\\DailyPetExit"+port).Set(); } catch(WaitHandleCannotBeOpenedException) {} return 0; }
         using(var mutex=new Mutex(true,"Local\\DailyPet"+port,out created)) {
@@ -1493,7 +1532,7 @@ namespace DailyPet {
           }
         }
         return 0;
-      } catch(Exception e) { try { File.WriteAllText(Path.Combine(args[0],".daily-runtime","native-pet-error.log"),e.ToString()); } catch {} return 1; }
+      } catch(Exception e) { try { File.WriteAllText(RuntimePaths.Get(args[0],"native-pet-error.log"),e.ToString()); } catch {} return 1; }
     }
   }
 }

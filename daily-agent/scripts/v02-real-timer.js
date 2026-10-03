@@ -5,7 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createAgent } from "../core/createAgent.js";
 const exec = promisify(execFile);
-const agent = createAgent({
+const agent =await createAgent({
   dataDir: path.resolve("test-output/v02-timer-" + Date.now()),
   weatherEnabled: false,
   lightLookup: false,

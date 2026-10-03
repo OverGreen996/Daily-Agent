@@ -1,4 +1,5 @@
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Daily-SetupState.ps1')
 try {
  $html=(Invoke-WebRequest 'http://127.0.0.1:3210/' -UseBasicParsing).Content
  $match=[regex]::Match($html,'name="daily-token" content="([a-f0-9]+)"')
@@ -7,10 +8,10 @@ try {
  Write-Output 'Daily Agent is saving memory, unloading its models, and shutting down.'
  for($i=0;$i -lt 40;$i++){Start-Sleep -Milliseconds 100;try{$null=Invoke-WebRequest 'http://127.0.0.1:3210/' -UseBasicParsing -TimeoutSec 1}catch{break}}
 } catch { Write-Output ('Could not stop through the local API: '+$_.Exception.Message) }
-$nativePidFile=Join-Path $PSScriptRoot '.daily-runtime\pet-3210.pid'
+$nativePidFile=Join-Path (Get-DailyRuntimePath $PSScriptRoot) 'pet-3210.pid'
 if(Test-Path -LiteralPath $nativePidFile) {
   $petProcess=Get-Process -Id ([int](Get-Content -LiteralPath $nativePidFile)) -ErrorAction SilentlyContinue
-  $nativeDir=Join-Path $PSScriptRoot '.daily-runtime\native-pet\'
+  $nativeDir=(Join-Path (Get-DailyRuntimePath $PSScriptRoot) 'native-pet')+'\'
   if($petProcess -and $petProcess.Path -and $petProcess.Path.StartsWith($nativeDir,[StringComparison]::OrdinalIgnoreCase)) {
     & $petProcess.Path $PSScriptRoot 'http://127.0.0.1:3210' --exit
   }

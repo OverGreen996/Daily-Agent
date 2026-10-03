@@ -1,6 +1,6 @@
-# 日常桌寵 Android 0.1.0 Preview 7
+# 日常桌寵 Android 0.1.0 Preview 10
 
-versionCode 7，可覆蓋安裝先前 Preview。一般泡泡 15 分鐘自動收起，歷史模式除外；重新開啟不自動重播上次回覆。保留 Preview 4 的走路動畫修正及 Preview 5 的圖片與手機位置功能。
+versionCode 10，改用固定的新簽署金鑰。尚未安裝者直接安裝；若手機已有 Preview 9 或更舊版，須移除舊版後再安裝並重新配對，電腦記憶宮殿保留。Preview 10 之後使用同一把新金鑰，可正常覆蓋更新。一般泡泡 15 分鐘自動收起，歷史模式除外；重新開啟不自動重播上次回覆。
 
 Android 8.0 以上原生 Java App。手機不安裝任何模型；對話、圖片理解、Memory Palace 及文件問答一律交由電腦執行。APK 約 2.7 MB，只有程式碼、資源與露米素材。
 
@@ -10,10 +10,10 @@ Android 8.0 以上原生 Java App。手機不安裝任何模型；對話、圖�
 
 ## 第一次使用
 
-1. 電腦桌寵輸入「開啟 Cloudflare 連線」。不需先有 Cloudflare 帳號／網域，電腦會產生臨時 HTTPS 網址及 APK 下載連結。
-2. 手機用該下載連結取得 APK，依 Android 安裝提示允許這次安裝。也可將 `dist/DailyPet-Android-0.1.0-preview.apk` 用 USB 複製到手機。
+1. 手機掃描電腦安裝器的 QR Code，從 GitHub 下載 APK。已安裝電腦版時，在「功能與設定 → 連線與維護 → 手機 APK｜掃碼下載」也能找到。
+2. 依 Android 安裝提示允許這次安裝。APK 不在電腦安裝包內，下載不依賴電腦或 Cloudflare。也可由 GitHub 手動下載後用 USB 複製到手機。
 3. App 首次開啟會直接顯示配對畫面。
-4. 這時在電腦輸入「開啟手機配對」，取得五分鐘有效的八位碼；手機填入 HTTPS 網址及八位碼。
+4. 電腦桌寵輸入「開啟手機配對」，取得五分鐘有效的八位碼；手機填入自己的電腦連線網址及八位碼。已設定固定 Tunnel 的使用者沿用自己的網址；尚未配置連線者依「使用教學」處理。
 5. 配對後就是去背寵物與聊天泡泡。電腦與 Agent 必須保持開啟。
 
 臨時網址每次重新建立可能不同。網址改變時，手機長按寵物 → 配對／更換電腦網址，再取得新配對碼。同一手機更換網址會輪替 token，不重複占用裝置名額。正式固定 Tunnel 網域尚未設定。
@@ -58,9 +58,11 @@ PC 通知沿用原生 Windows UserNotificationListener。說「開啟通知提�
 .\Test-Android.ps1 -Build
 ```
 
-工具安裝在專案 `.daily-runtime/android-build`，不更改全域 Java/Android 環境。JDK 17、Android SDK 35、Build Tools 35；直接 javac → D8 → aapt2 → zipalign → apksigner，沒有 Gradle 或推論框架。使用專案本機 Preview 簽章；保留 `.daily-runtime/android-build/daily-pet-preview.jks` 才能延續相同安裝的更新。此版本非 Play Store 發行版。
+工具安裝在專案 `.daily-runtime/android-build`，不更改全域 Java/Android 環境。JDK 17、Android SDK 35、Build Tools 35；直接 javac → D8 → aapt2 → zipalign → apksigner，沒有 Gradle 或推論框架。簽署私鑰保存在 `%LOCALAPPDATA%\DailyAgentBuildKeys\daily-pet-preview.jks`，可用 `DAILY_ANDROID_KEYSTORE` 指定既有私鑰。私鑰必須另行備份，不放在可清理的 runtime 暫存或公開 Git。此版本非 Play Store 發行版。
 
-Preview 5 的 versionCode 為 5；下載檔名沿用 `DailyPet-Android-0.1.0-preview.apk`。使用相同簽章，可覆蓋安裝；建置時會同步更新 `dist/SHA256SUMS.txt`。
+正常建置固定使用既有金鑰，不會悄悄更換簽章。只有明確決定放棄舊簽章時才使用 `.\Build-Android.ps1 -Rekey`，且必須提高 versionCode；舊 APK 先備份，再替換。簽署密碼由 Windows DPAPI 保護，金鑰與可攜恢復密碼另外備份到「文件\DailyAgent-簽署金鑰備份」，資料夾只允許目前 Windows 使用者存取。請把此私密備份再複製到離線磁碟，勿上傳 Git。
+
+下載檔名沿用 `DailyPet-Android-0.1.0-preview.apk`，建置同步更新 SHA-256、簽章指紋及更新接口最低相容版本。`GET /v1/updates?versionCode=9` 會提示重新安裝；Preview 10 起回傳 `requires_reinstall=false`。手機仍須確認 Android 安裝，本版沒有自動更新畫面。
 
 已驗證：APK 編譯、v2/v3 簽章、主機端通知規則／HTTPS 網址／縮放上下限測試；PC 106 項測試、原生 40 組定位與 12 組互動回歸；真實 Cloudflare 雙向 API／APK 下載／外觀傳輸及檔案一致性；真實 Qwen 經手機入口聊天、圖片數字 427、文件代碼 LUMI-7392、結束後模型卸載。
 

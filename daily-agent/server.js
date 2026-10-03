@@ -7,7 +7,7 @@ import { config, root } from "./config.js";
 import { createAgent } from "./core/createAgent.js";
 import { tokens } from "./memory/MemoryPalace.js";
 import {palaceView,palaceBook} from './memory/PalaceView.js';
-const agent = createAgent(),
+const agent = await createAgent(),
   secret = randomBytes(32).toString("hex");
 agent.start();
 const server = http.createServer(async (req, res) => {
@@ -37,7 +37,12 @@ const server = http.createServer(async (req, res) => {
       )
         return send(401, { error: "Token required" });
       if (closing) return send(503, { error: "正在保存記憶並停止服務，請稍候。" });
-      if(url.pathname==='/api/pocketdrop'&&req.method==='GET')return send(200,agent.pocketdrop.status());
+      if(url.pathname==='/api/modules'&&req.method==='GET')return send(200,{modules:agent.modules.status()});
+      const alias=url.pathname.replace(/^\/api\/pocketdrop(?=\/|$)/,'/api/modules/pocketdrop').replace(/^\/api\/mobile\/appearance$/,'/api/modules/mobile/appearance');
+      if(req.method==='GET'){
+        const route=await agent.modules.route('GET',alias,null,{query:url.searchParams});
+        if(route)return send(route.code,route.data);
+      }
       if (url.pathname === "/api/status" && req.method === "GET")
         return send(200, await agent.status());
       if(url.pathname==='/api/palace' && req.method==='GET')return send(200,palaceView(agent.memory,url.searchParams.get('q')||'',url.searchParams.get('page')));
@@ -75,11 +80,11 @@ const server = http.createServer(async (req, res) => {
           return send(413, { error: "Image/body too large" });
       }
       const data = JSON.parse(body || "{}");
-      if(url.pathname==='/api/pocketdrop/pair')return send(200,await agent.pocketdrop.pair(data.invite));
-      if(url.pathname==='/api/pocketdrop/check'){const state=await agent.pocketdrop.state();return send(200,{connected:true,room:state.room_name,files:state.files.length,revision:state.revision});}
-      if(url.pathname==='/api/pocketdrop/disconnect')return send(200,{message:agent.pocketdrop.disconnect()});
-      if(url.pathname==='/api/mobile/appearance')return send(200,{...agent.remote.appearance.publish(data),devices:agent.remote.devices.list().length});
+      if(url.pathname==='/api/modules/configure')return send(200,agent.modules.configure(data.id,data.enabled));
+      const moduleRoute=await agent.modules.route('POST',alias,data,{query:url.searchParams});
+      if(moduleRoute)return send(moduleRoute.code,moduleRoute.data);
       if(url.pathname==='/api/notification'){
+        agent.modules.require('mobile');
         if(data.clear){agent.companion.pending.delete('NEW_NOTIFICATION');return send(200,{cleared:true});}
         const event=agent.companion.notifications.receive(data);
         if(event){
@@ -115,6 +120,7 @@ const server = http.createServer(async (req, res) => {
       // Local authenticated adapter for a future paired Android transport.
       // No LAN listener, pairing service or GPS persistence is introduced here.
       if (url.pathname === "/api/environment/location") {
+        agent.modules.require('environment');
         if (data.android) agent.companion.location.updateAndroid(data.android);
         if (data.activeDevice)
           agent.companion.location.setActiveDevice(data.activeDevice);
@@ -132,6 +138,9 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       if (url.pathname === "/api/settings") {
+        if(Object.keys(data).some(k=>['perception','lightLookup','weatherEnabled','lightPerception','screenVision','weatherRefreshMs'].includes(k)))agent.modules.require('environment');
+        if(data.lightLookup===true)agent.modules.require('search');
+        if(Object.hasOwn(data,'memoryCompanion'))agent.modules.require('companion');
         if (
           data.weatherRefreshMs !== undefined &&
           (!Number.isFinite(data.weatherRefreshMs) ||
@@ -192,6 +201,10 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200,{'Content-Type':'image/webp','Cache-Control':'public, max-age=3600'});res.end(data);return;
     }
     if(url.pathname==='/jsqr.js'){res.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'});res.end(await fs.readFile(path.join(root,'node_modules/jsqr/dist/jsQR.js')));return;}
+    if(url.pathname==='/drive-guide'){
+      res.writeHead(200,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'"});
+      res.end(await fs.readFile(path.join(root,'deploy','GoogleDrive備份教學.md'),'utf8'));return;
+    }
     const files = {
       "/": "index.html",
       "/pocketdrop":"pocketdrop.html",
@@ -200,6 +213,7 @@ const server = http.createServer(async (req, res) => {
       "/style.css": "style.css",
       '/palace':'palace.html',
       '/palace.js':'palace.js',
+      '/drive-backup.js':'drive-backup.js',
       '/palace.css':'palace.css',
     };
     if (!files[url.pathname]) return send(404, { error: "Not found" });
@@ -220,7 +234,7 @@ const server = http.createServer(async (req, res) => {
     });
     res.end(content);
   } catch (e) {
-    send(500, { error: e.message });
+    send(e.statusCode || 500, { error: e.message });
   }
 });
 server.listen(config.port, "127.0.0.1", () =>

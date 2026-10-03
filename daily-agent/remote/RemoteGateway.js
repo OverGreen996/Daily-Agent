@@ -8,10 +8,11 @@ import { companionEvent } from "../core/CompanionEvents.js";
 import { parseDocumentCommand } from "../core/DocumentCommands.js";
 import {androidUpdate} from './UpdateFeed.js';
 export class RemoteGateway {
-  constructor(agent, { port = 3221, now = Date.now, apkPath = null } = {}) {
+  constructor(agent, { port = 3221, now = Date.now, apkPath = null, apkDownload = null } = {}) {
     this.agent = agent;
     this.port = port;
     this.apkPath = apkPath;
+    this.apkDownload = apkDownload;
     this.now = now;
     this.jobs = new Map();
     this.rate = new Map();
@@ -81,12 +82,18 @@ export class RemoteGateway {
         return send(200, { service: "daily-agent-mobile", protocol: 1 });
       if(req.method==='GET' && url.pathname==='/v1/updates') {
         if(this.limited('updates',30))return send(429,{error:'請稍後重試'});
-        try{return send(200,await androidUpdate(this.apkPath));}
+        const installedVersionCode=url.searchParams.has('versionCode')?Number(url.searchParams.get('versionCode')):null;
+        if(installedVersionCode!==null&&(!Number.isSafeInteger(installedVersionCode)||installedVersionCode<1))return send(400,{error:'請提供有效的手機 versionCode'});
+        try{return send(200,await androidUpdate(this.apkPath,{installedVersionCode,download:this.apkDownload}));}
         catch{return send(503,{error:'目前沒有通過完整性驗證的 APK 更新'});}
       }
       if (req.method === "GET" && url.pathname === "/download/android.apk") {
         if (this.limited("apk", 20))
           return send(429, { error: "請稍後重試下載。" });
+        if(!this.apkPath&&this.apkDownload){
+          try {const feed=await androidUpdate(null,{download:this.apkDownload});res.writeHead(302,{'Location':feed.android.url,'Cache-Control':'no-store'});return res.end();}
+          catch{return send(503,{error:'手機下載資訊未通過驗證。'});}
+        }
         if (!this.apkPath)
           return send(404, { error: "此電腦尚未建置 Android App。" });
         try {

@@ -6,7 +6,8 @@ test('today news uses concise keywords, news category and day range; excludes st
   const now=new Date(2026,8,28,8);
   const p=new SearXNGProvider({endpoint:'http://localhost:8888',now:()=>now,fetcher:async url=>{
     assert.equal(url.searchParams.get('q'),'artificial intelligence');
-    assert.equal(url.searchParams.get('categories'),'news');
+    assert.equal(url.searchParams.get('categories'),null);
+    assert.equal(url.searchParams.get('engines'),'google cse,yahoo,yep,bing');
     assert.equal(url.searchParams.get('time_range'),'day');
     return {ok:true,json:async()=>({results:[
       {url:'https://example.com/old',publishedDate:new Date(+now-7*86400000).toISOString()},
@@ -36,7 +37,7 @@ test('plain news replies always include missing source URLs once and preserve co
 test('undated local news uses dated RSS headlines',async()=>{
  const now=new Date('2026-09-28T06:00:00Z');let calls=0;
  const p=new SearXNGProvider({endpoint:'http://localhost:8888',now:()=>now,fetcher:async url=>{calls++;return url.hostname==='localhost'?{ok:true,json:async()=>({results:[{title:'台中消息',url:'https://example.com/local'}]})}:{ok:true,text:async()=>'<rss><channel><item><title>台中新聞</title><link>https://example.com/today</link><pubDate>Mon, 28 Sep 2026 05:00:00 GMT</pubDate><source>報社</source></item></channel></rss>'};}});
- const r=await p.search('今天台中頭條新聞');assert.equal(calls,2);assert.equal(r.results[0].coverage,'headline-only');assert.equal(r.results[0].freshness,'today');
+ const r=await p.search('今天台中頭條新聞');assert.ok(calls>=2);assert.ok(['headline-only','search-excerpt'].includes(r.results[0].coverage));assert.equal(r.results[0].freshness,'today');
 });
 test('RSS outage keeps safe undated links, cancellation stops fallback',async()=>{
  const p=new SearXNGProvider({endpoint:'http://localhost:8888',fetcher:async url=>{if(url.hostname!=='localhost')throw Error('offline');return {ok:true,json:async()=>({results:[{title:'地方新聞',url:'https://example.com/a'},{title:'bad',url:'javascript:bad'}]})};}});

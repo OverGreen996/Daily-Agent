@@ -22,7 +22,7 @@ namespace DailyPet {
     readonly string root, library;
     const int MaxFileBytes=32*1024*1024;
     public PetLibrary(string projectRoot,string testLibrary=null) {
-      root=projectRoot; library=testLibrary ?? Path.Combine(root,".daily-runtime","native-pet","pets");
+      root=projectRoot; library=testLibrary ?? RuntimePaths.Get(root,"native-pet","pets");
       Directory.CreateDirectory(library);
     }
     public static string NameFrom(Dictionary<string,object> metadata,string fallback) {
@@ -182,6 +182,22 @@ namespace DailyPet {
     static string QuoteFile(string path) {
       if(path.Contains("\"") || path.Contains("\n") || path.EndsWith("\\")) throw new Exception("不支援的檔案路徑。");
       return "\""+path+"\"";
+    }
+    public PetAppearance SaveEdited(Bitmap image,Bitmap original,bool animated,string displayName) {
+      Validate(image,animated,true);
+      string id=Guid.NewGuid().ToString("N"),dir=Folder(id);
+      Directory.CreateDirectory(dir);
+      try {
+        image.Save(Path.Combine(dir,"sprite.png"),ImageFormat.Png);
+        original.Save(Path.Combine(dir,"original.png"),ImageFormat.Png);
+        string name=NameFrom(new Dictionary<string,object>{{"displayName",displayName}},"微調外觀");
+        File.WriteAllText(Path.Combine(dir,"profile.json"),Json.Encode(new {displayName=name,animated=animated,formatVersion=2,validation="daily-pet-v2-structure-1",edited=true}));
+        return Load(id);
+      } catch {
+        string resolved=Path.GetFullPath(dir),expected=Path.GetFullPath(library)+Path.DirectorySeparatorChar;
+        if(resolved.StartsWith(expected,StringComparison.OrdinalIgnoreCase)&&Path.GetFileName(resolved)==id){try{Directory.Delete(resolved,true);}catch{}}
+        throw;
+      }
     }
     void DecodeWebP(string input,string output) {
       string script=Path.Combine(root,"daily-agent","desktop","decode-pet.mjs");

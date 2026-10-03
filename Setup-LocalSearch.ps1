@@ -4,6 +4,12 @@ function Get-DockerOS {
   try {$value=& $script:docker info --format '{{.OSType}}' 2>$null;if($LASTEXITCODE -eq 0){return $value}}
   finally {$ErrorActionPreference=$previous}
 }
+$existingHub=$null
+try {$existingHub=Invoke-RestMethod 'http://127.0.0.1:8889/health' -TimeoutSec 3} catch {}
+if($existingHub.service -eq 'XNG AI Search Hub' -and $existingHub.schema_version -eq 1 -and $existingHub.paid -eq $false){
+  & (Join-Path $PSScriptRoot 'Start-SearXNG.ps1')
+  exit
+}
 function Find-Docker {
   $cmd=Get-Command docker.exe -ErrorAction SilentlyContinue
   if($cmd){return $cmd.Source}

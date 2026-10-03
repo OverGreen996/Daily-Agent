@@ -1,0 +1,91 @@
+{
+    "upstream":  "XNG AI Search Hub",
+    "captured_at":  "2026-10-03T10:59:33.7165496Z",
+    "schema":  1,
+    "files":  [
+                  {
+                      "sha256":  "43fdd7c4dc8373fe79e94a7ceea07701f2bca52c0a71210c5b615df25bae8edb",
+                      "path":  "BrowserAgent.js"
+                  },
+                  {
+                      "sha256":  "d17068f8d363c0b8aa23624a6dc7aeae30a263d44bcc8333634c8da92747cae6",
+                      "path":  "Client.js"
+                  },
+                  {
+                      "sha256":  "13e0eb0eaa5e2001a3e710ce170467c302d45e45df8a076f21c3d38f06b1220b",
+                      "path":  "Core.js"
+                  },
+                  {
+                      "sha256":  "db4fbd0ee5c2fa7ffcfaedf6f300ef7e8ce31b85bbb0558f5773ee6e8ea584d8",
+                      "path":  "domain_overrides.json"
+                  },
+                  {
+                      "sha256":  "f0c5d131e92f28a781d7f73464574f791607918c3ca7f8e9cf8d62d6f3adb10c",
+                      "path":  "Evidence.js"
+                  },
+                  {
+                      "sha256":  "a827c96d432f8ef40fe11c40183c1f3b04765efc1727b329497eaee278ec290b",
+                      "path":  "FastPageReader.js"
+                  },
+                  {
+                      "sha256":  "936b7a2d8bfeb0dea59ab4f02398e446abe1d3a53c5c6cc9b1389fb1cb9457cb",
+                      "path":  "GameSearch.js"
+                  },
+                  {
+                      "sha256":  "cb384c8f435fe604d1f70e04f71b93cb32a30cfa0a6f3daec363242f53c849bd",
+                      "path":  "GameVersionCheck.js"
+                  },
+                  {
+                      "sha256":  "9925fc5494c687097eb255e9938a00fc8f1c21c9afc4bc1f5d8e34cfd276588a",
+                      "path":  "index.js"
+                  },
+                  {
+                      "sha256":  "176ea898c9a3b830eb641d2bb2fc604dd90c390764667f950c190d324c879ff9",
+                      "path":  "package.json"
+                  },
+                  {
+                      "sha256":  "ee176ed4196a5e1b6b294c0d1677ac6afac4ca4d8c1c8400ed9a8d38e42faa8d",
+                      "path":  "Passages.js"
+                  },
+                  {
+                      "sha256":  "65efc4d864f3d6f62ca071c4d3db82efb6c841e604b6fa7ecace7b4bfcd35fd9",
+                      "path":  "QueryText.js"
+                  },
+                  {
+                      "sha256":  "2d021249c9de41ca03077588bc9ba8780cb76a5b2e7853811b67b5756aefb2de",
+                      "path":  "SearchFacts.js"
+                  },
+                  {
+                      "sha256":  "5a11499b678e29b446a3cdc229cba7aa67bea8a44bc8da22354b4336dbce7fdb",
+                      "path":  "SearchPlanner.js"
+                  },
+                  {
+                      "sha256":  "ec2374e5bbd39158ed144b5c47b964f0731ed3c2567f188f472dae565a9b414a",
+                      "path":  "SearchProvider.js"
+                  },
+                  {
+                      "sha256":  "20fbe3a347aa647773d299b0aa4f194c8ec46088c2dd3f9dceeb84f435afdaaa",
+                      "path":  "SearchQuality.js"
+                  },
+                  {
+                      "sha256":  "24603effc8ee93d438cb86f6fee6f9732dfde2b59bb7dccb397417a0e128bf41",
+                      "path":  "SearXNGProvider.js"
+                  },
+                  {
+                      "sha256":  "2cbee2ec28a66ebf98611eb9ef80fa6defa43bfc69c20b1cad3e4706da0ba6f8",
+                      "path":  "server.js"
+                  },
+                  {
+                      "sha256":  "07f51dab35303afe3490b0238a9f327bb0d84766cb25a8193b0cc1610c036c8c",
+                      "path":  "SourceBudget.js"
+                  },
+                  {
+                      "sha256":  "df60719d6481299a80b42c1fecd8e0c367740ca70e8d6af440a8c8b07e532120",
+                      "path":  "SourceRegistry.js"
+                  },
+                  {
+                      "sha256":  "61f928910aba2a60c3aaa37a06530427056b93ba14182869197e7b2c637058d2",
+                      "path":  "SteamStore.js"
+                  }
+              ]
+}

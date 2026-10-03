@@ -205,10 +205,18 @@ export class IdleCompanion {
               : memoryTopic ? '根據這則記憶選擇自然的接話方向，輸出 JSON invitation。' : "根據活動說一句簡單關心的話。",
           },
         ],
-        { format: "json", num_predict: 170 },
+        { format: {
+          type:'object',additionalProperties:false,
+          properties:memoryTopic?{invitation:{type:'string',enum:['continue','progress','ideas','plan']}}:
+            screenEvent?{should_speak:{type:'boolean'},support:{type:'string',maxLength:24},text:{type:'string',maxLength:45}}:
+              {text:{type:'string',maxLength:60},emotion:{type:'string',enum:['curious','happy','concerned','gentle','sleepy']},activity:{type:'string',enum:['rain','rest','weather_alert','alert','reading','watching']}},
+          required:memoryTopic?['invitation']:screenEvent?['should_speak','support','text']:['text'],
+        }, num_predict: 256 },
       );
       if (epoch !== this.epoch) return null;
-      const generated=JSON.parse(r.message.content);
+      let generated;
+      try{generated=JSON.parse(r.message.content);}catch{return null;}
+      if(!generated || typeof generated!=='object' || Array.isArray(generated))return null;
       reply = validPetReply(generated, tag);
       if(screenEvent)reply.text=screenConversationText(generated,event);
       if(memoryTopic)reply={text:memoryFollowupText(memoryTopic,generated.invitation),emotion:'gentle',activity:'rest'};

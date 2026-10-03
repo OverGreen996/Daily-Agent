@@ -7,7 +7,7 @@ import {companionEvent} from '../core/CompanionEvents.js';
 import {fileURLToPath} from 'node:url';
 process.chdir(fileURLToPath(new URL('..',import.meta.url)));
 const output=path.resolve('test-output/completion-'+Date.now());fs.mkdirSync(output,{recursive:true});
-const agent=createAgent({dataDir:path.join(output,'data'),perception:false,lightLookup:false,weatherEnabled:false});let report={output};
+const agent=await createAgent({dataDir:path.join(output,'data'),perception:false,lightLookup:false,weatherEnabled:false});let report={output};
 const gpu=()=>Number(execFileSync('nvidia-smi',['--query-gpu=memory.used','--format=csv,noheader,nounits'],{windowsHide:true,encoding:'utf8'}).trim());
 const ram=()=>JSON.parse(execFileSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',path.resolve('scripts/measure-resources.ps1'),'-AgentProcessId',String(process.pid)],{windowsHide:true,encoding:'utf8'}));
 try{

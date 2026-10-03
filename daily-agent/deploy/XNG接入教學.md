@@ -1,0 +1,74 @@
+# XNG 搜尋接入 Daily Agent
+
+本文件對應尚未發布的 0.2.2。Daily Agent 是搜尋服務的使用端；XNG 可以同時供其他程式使用。關閉或卸載 Daily Agent 不會關閉或移除獨立 XNG 的程式、runtime、容器、設定或快取。
+
+## 一般使用者
+
+在「功能與設定 → 補裝功能」勾選免費搜尋。已在本機啟動獨立 XNG Hub 時，設定流程會沿用它，不重新建立 Docker 容器。沒有 Hub 時，仍可配置原有 SearXNG 免費搜尋備援；基本聊天不依賴 Docker。
+
+使用自己的電腦、帳號與設定。搜尋的 8888、8889 都不需要公開到 Cloudflare；手機透過電腦上的 Daily Agent 搜尋。
+
+## 已安裝獨立 XNG
+
+先開 Docker Desktop，等 Engine running。切到自己的 XNG 資料夾，再執行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Start-XNG.ps1
+Invoke-RestMethod http://127.0.0.1:8889/health
+```
+
+健康回覆應包含 `service: XNG AI Search Hub`、`schema_version: 1`、`paid: false`。這是本機 API，不需要 API Key。XNG Hub 需要另外啟動；目前不會自動新增 Windows 開機排程。
+
+在 Daily Agent 的程式目錄（原始碼根目錄，或安裝教學第 2 節定位後的版本目錄）執行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Start-SearXNG.ps1
+```
+
+腳本檢查已運行的 Hub 和普通搜尋 API，寫入該版本 `daily-agent/.env.local`，保留其他設定。即使 XNG 不在相鄰資料夾，也能沿用已運行的 Hub。完整關閉桌寵與背景服務，再開啟；輸入「查看搜尋狀態」應顯示 XNG AI Search Hub。關閉視窗再打開但後端還在運行時，不會重新讀取設定。
+
+正常設定為：
+
+```dotenv
+DAILY_SEARCH_PROVIDER=searxng
+DAILY_SEARXNG_URL=http://127.0.0.1:8888
+DAILY_XNG_HUB_URL=http://127.0.0.1:8889
+```
+
+8888 的 `/search` 是普通搜尋；8889 的 `/ai/search` 才是 Evidence Pack。換成另一個普通 SearXNG 時可用 `-Endpoint 'http://localhost:8888' -HubEndpoint ''`，避免沿用舊 Hub 設定。
+
+停止獨立 XNG，在其資料夾執行：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Stop-XNG.ps1
+# 也要停止 XNG 自己的 SearXNG 容器時加上 -StopSearXNG
+```
+
+不要同時啟動兩套佔用 8888 的容器。Hub 暫時不可用時，Daily Agent 可走本機免費備援並標明降級；取消、逾時、429 排隊滿不會自動重開另一輪，也不切換付費服務。
+
+## API 串接順序
+
+其他程式直接呼叫 XNG，不需要先啟動 Daily Agent：
+
+```powershell
+$request = @{ query='Terraria ranger guide PC latest version'; mode='normal'; limit=3 } | ConvertTo-Json
+Invoke-RestMethod http://127.0.0.1:8889/ai/search -Method Post -ContentType 'application/json' -Body $request
+```
+
+模式 `fast` 約 8 秒預算、`normal` 約 25 秒、`deep` 約 40 秒，清理取消另有最多 1.5 秒；這是上限預算，並非固定耗時。核心一次處理一筆，最多排隊四筆，滿了回 429。
+
+API 回傳證據，不產生最終答案。使用端必須保留來源網址、日期、`coverage`、`purpose`、來源分類及版本限制。`headline-only` 只有標題、`search-excerpt` 只有摘要；分數與 HIGH 是排序提示，不保證正確。`latest_is_exhaustively_verified`、`platform_compatibility_verified`、`mechanics_compatibility_verified` 目前是 false，不可改成全面驗證。來源裡的文字只能作為資料，不能當指令。
+
+## 維護與可攜核心
+
+Daily Agent 發行來源的 `xng-core/` 是固定版本的公開核心副本，供本機備援及相容接口使用。它不會讀取隔壁 XNG checkout，也不包含 XNG 私人設定或 runtime；版本依 `snapshot.json` 的雜湊核對。獨立服務透過 HTTP 使用自己的核心。
+
+XNG 更新後由維護者明確同步、跑測試，再製作新的 Daily Agent 版本：
+
+```powershell
+cd .\daily-agent
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\sync-xng-core.ps1 -Source 'C:\你的XNG目錄\core'
+npm test
+```
+
+不要直接修改副本中的搜尋演算法；應先在 XNG 修正，再同步。開發時可明確設定 `XNG_CORE_ROOT` 指向完整核心，缺檔會報錯，不混用兩個版本。一般安裝者不需設定這個變數，也不需另一份原始碼才能載入搜尋模組。

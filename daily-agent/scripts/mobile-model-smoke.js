@@ -5,7 +5,7 @@ import { createAgent } from "../core/createAgent.js";
 import { RemoteGateway } from "../remote/RemoteGateway.js";
 const dir = path.resolve("test-output/mobile-model-" + Date.now());
 await fs.mkdir(dir, { recursive: true });
-const agent = createAgent({
+const agent =await createAgent({
   dataDir: path.join(dir, "data"),
   perception: false,
   lightLookup: false,

@@ -1,9 +1,6 @@
-export class SearchProvider {
-  async search(query, options = {}) {
-    throw Error("SearchProvider.search not implemented");
-  }
-  cancel() {}
-}
+import {loadCore} from './SharedCore.js';
+const {SearchProvider}=await loadCore('SearchProvider.js');
+export {SearchProvider};
 export class TavilySearchProvider extends SearchProvider {
   constructor({ apiKey, fetcher = fetch }) {
     super();

@@ -63,7 +63,7 @@ namespace DailyPet {
     public static Grammar WakeGrammar(string name){var words=new Choices(new string[]{name,"露米","路米","嚕米","Lumi"});var builder=new GrammarBuilder {Culture=new CultureInfo("zh-TW")};builder.Append(words);builder.AppendDictation();return new Grammar(builder);}
     public static Grammar CommonGrammar(string name){var builder=new GrammarBuilder {Culture=new CultureInfo("zh-TW")};builder.Append(new Choices(new string[]{name,"露米","路米","嚕米","Lumi"}));builder.Append(new Choices(new string[]{"現在幾點","今天天氣如何","查看目前狀態","進入待機","查看文件庫","打開記憶宮殿","開啟語音回覆","關閉語音回覆","關閉語音","查看行事曆","開啟天氣提醒","關閉天氣提醒"}));return new Grammar(builder){Priority=100};}
     void LogRecognition(string kind,RecognitionResult result){
-      try{string dir=Path.Combine(Root,".daily-runtime","native-pet");Directory.CreateDirectory(dir);File.AppendAllText(Path.Combine(dir,"voice-recognition.log"),DateTime.Now.ToString("O")+"\t"+kind+"\t"+(result==null?"":result.Confidence.ToString("0.000",CultureInfo.InvariantCulture))+"\t"+(result==null?"":result.Text)+Environment.NewLine,Encoding.UTF8);}catch{}
+      try{string dir=RuntimePaths.Get(Root,"native-pet");Directory.CreateDirectory(dir);File.AppendAllText(Path.Combine(dir,"voice-recognition.log"),DateTime.Now.ToString("O")+"\t"+kind+"\t"+(result==null?"":result.Confidence.ToString("0.000",CultureInfo.InvariantCulture))+"\t"+(result==null?"":result.Text)+Environment.NewLine,Encoding.UTF8);}catch{}
     }
     void Consider(RecognitionResult result,string kind){
       LogRecognition(kind,result);if(result==null||!Listening||Speaking||DateTime.UtcNow<quietUntil)return;
@@ -74,7 +74,7 @@ namespace DailyPet {
       lastDispatchText=command;lastDispatch=DateTime.UtcNow;if(Heard!=null)Heard(command);
     }
     void ConsiderSherpa(string text){
-      try{string dir=Path.Combine(Root,".daily-runtime","native-pet");Directory.CreateDirectory(dir);File.AppendAllText(Path.Combine(dir,"voice-recognition.log"),DateTime.Now.ToString("O")+"\tsherpa\t1.000\t"+text+Environment.NewLine,Encoding.UTF8);}catch{}
+      try{string dir=RuntimePaths.Get(Root,"native-pet");Directory.CreateDirectory(dir);File.AppendAllText(Path.Combine(dir,"voice-recognition.log"),DateTime.Now.ToString("O")+"\tsherpa\t1.000\t"+text+Environment.NewLine,Encoding.UTF8);}catch{}
       if(!Listening||Speaking||DateTime.UtcNow<quietUntil||String.IsNullOrWhiteSpace(text))return;
       string command=Command(text,WakeName,1,0);if(command==null&&!RequireWakeName)command=text.Trim();if(String.IsNullOrWhiteSpace(command))return;
       if(command==lastDispatchText&&(DateTime.UtcNow-lastDispatch).TotalSeconds<2)return;lastDispatchText=command;lastDispatch=DateTime.UtcNow;if(Heard!=null)Heard(command);

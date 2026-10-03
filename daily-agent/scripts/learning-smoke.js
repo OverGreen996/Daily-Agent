@@ -3,7 +3,7 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { createAgent } from "../core/createAgent.js";
 const dataDir=path.resolve("test-output/learning-"+Date.now());
-const agent = createAgent({
+const agent =await createAgent({
   dataDir,
   perception: false,
   searxngUrl: "",
@@ -37,7 +37,7 @@ try {
   assert.ok(!r.models.some((m) => m.name === "qwen3.5:4b"));
   r.cards = await agent.memory.retriever.search("Archicad 是什麼軟體？");
   assert.ok(r.cards.length);
-  const restarted=createAgent({dataDir,perception:false,searxngUrl:""});
+  const restarted=await createAgent({dataDir,perception:false,searxngUrl:""});
   try {
     restarted.companion.browser.search=()=>{throw Error("Restart must use saved memory");};
     assert.equal((await restarted.companion.lookup.lookup("ARCHICAD.EXE")).memory_hit,true);

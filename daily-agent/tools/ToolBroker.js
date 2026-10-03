@@ -12,7 +12,11 @@ const definitions = {
 export class PermissionBroker {
   authorize(tool, args, context) {
     if (!Object.hasOwn(definitions, tool)) throw Error("不允許的工具");
-    if(context?.deviceId&&!['web_search','web_read','file_search','file_read'].includes(tool))throw Error('手機目前僅能搜尋網頁及讀取指定的共享檔案。');
+    if (
+      context?.deviceId &&
+      !["web_search", "web_read", "file_search", "file_read"].includes(tool)
+    )
+      throw Error("手機目前僅能搜尋網頁及讀取指定的共享檔案。");
     if (context?.source !== "user") throw Error("工具只能由使用者互動觸發");
     const expected = definitions[tool][1];
     if (!args || typeof args !== "object" || Array.isArray(args))
@@ -70,16 +74,35 @@ export class ToolBroker {
     }));
   }
   async execute({ tool, args }, context) {
-    if(context.deviceId&&this.remoteAuthorized&&!this.remoteAuthorized(context.deviceId))throw Error('裝置配對已解除。');
+    if (
+      context.deviceId &&
+      this.remoteAuthorized &&
+      !this.remoteAuthorized(context.deviceId)
+    )
+      throw Error("裝置配對已解除。");
+    if (tool.startsWith("module_"))
+      return this.modules.executeTool(tool, args, context);
     this.permissions.authorize(tool, args, context);
     this.bus.publish("tool", { tool });
-    let effectiveArgs=args;
-    if(tool==='web_search'&&context?.deviceId&&/(?:附近|當地|這裡|所在地|目前位置|我在哪|nearby|near me|local)/i.test(context.userText||'')){
-      const location=context.location;
-      if(!location)throw Error('手機尚未提供目前位置，請先在手機說「更新手機位置」。');
-      const latitude=Math.round(Number(location.latitude)*10)/10,longitude=Math.round(Number(location.longitude)*10)/10;
-      if(!Number.isFinite(latitude)||!Number.isFinite(longitude))throw Error('手機位置已失效，請重新更新手機位置。');
-      effectiveArgs={...args,query:`${args.query} near latitude ${latitude}, longitude ${longitude}`};
+    let effectiveArgs = args;
+    if (
+      tool === "web_search" &&
+      context?.deviceId &&
+      /(?:附近|當地|這裡|所在地|目前位置|我在哪|nearby|near me|local)/i.test(
+        context.userText || "",
+      )
+    ) {
+      const location = context.location;
+      if (!location)
+        throw Error("手機尚未提供目前位置，請先在手機說「更新手機位置」。");
+      const latitude = Math.round(Number(location.latitude) * 10) / 10,
+        longitude = Math.round(Number(location.longitude) * 10) / 10;
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude))
+        throw Error("手機位置已失效，請重新更新手機位置。");
+      effectiveArgs = {
+        ...args,
+        query: `${args.query} near latitude ${latitude}, longitude ${longitude}`,
+      };
     }
     switch (tool) {
       case "web_search":
@@ -87,9 +110,9 @@ export class ToolBroker {
       case "web_read":
         return this.browser.open(args.url);
       case "file_search":
-        return (context.deviceId?this.remoteFiles:this.files).search(args);
+        return (context.deviceId ? this.remoteFiles : this.files).search(args);
       case "file_read":
-        return (context.deviceId?this.remoteFiles:this.files).read(args);
+        return (context.deviceId ? this.remoteFiles : this.files).read(args);
       case "app_launch":
         return SystemTools.launch(args.app, this.config.apps);
       case "clipboard_read":
@@ -100,5 +123,18 @@ export class ToolBroker {
         return SystemTools.info();
     }
   }
-  schemasFor(context){return context?.deviceId?this.schemas.filter(s=>['web_search','web_read','file_search','file_read'].includes(s.function.name)):this.schemas;}
+  schemasFor(context) {
+    let schemas = context?.deviceId
+      ? this.schemas.filter((s) =>
+          ["web_search", "web_read", "file_search", "file_read"].includes(
+            s.function.name,
+          ),
+        )
+      : this.schemas;
+    if (this.modules && !this.modules.enabled("search"))
+      schemas = schemas.filter(
+        (s) => !["web_search", "web_read"].includes(s.function.name),
+      );
+    return [...schemas, ...(this.modules?.toolSchemas(context) || [])];
+  }
 }

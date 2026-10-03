@@ -1,3 +1,5 @@
+> 下方是歷史紀錄，版本與雜湊不代表最新 APK。目前為 Preview 10，見 [Android 操作](README.md) 與 [本版驗證](../VALIDATION.md)。
+
 # Android Preview 驗證紀錄 · 2026-09-28
 
 ## 最新重新驗證：Preview 7

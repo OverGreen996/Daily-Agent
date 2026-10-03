@@ -1,5 +1,6 @@
 const fs=require('fs'),path=require('path'),{spawn}=require('child_process'),readline=require('readline');
-const root=path.resolve(__dirname,'../..'),outDir=path.join(root,'.daily-runtime','tts-output'),reportFile=path.join(root,'daily-agent','test-output','kokoro-tts.json');
+const {runtimePath}=require('../core/RuntimePaths.cjs');
+const root=path.resolve(__dirname,'../..'),outDir=runtimePath('tts-output'),reportFile=path.join(root,'daily-agent','test-output','kokoro-tts.json');
 fs.mkdirSync(outDir,{recursive:true});const worker=spawn(process.execPath,[path.join(__dirname,'kokoro-tts.cjs'),'--worker'],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe']});
 const pending=new Map(),report={started:new Date().toISOString(),gpu:false,voice:'zf_001'},errors=[];worker.stderr.on('data',x=>errors.push(String(x)));
 const lines=readline.createInterface({input:worker.stdout});let readyResolve;const ready=new Promise(r=>readyResolve=r);

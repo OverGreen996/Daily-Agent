@@ -1,3 +1,4 @@
+const {runtimePath}=require('../core/RuntimePaths.cjs');
 const fs=require('fs');
 const path=require('path');
 const sherpa=require('sherpa-onnx-node');
@@ -13,9 +14,9 @@ function wav16(samples,rate){
 }
 function pcm16(samples){const data=Buffer.alloc(samples.length*2);for(let i=0;i<samples.length;i++)data.writeInt16LE(Math.round(Math.max(-1,Math.min(1,samples[i]))*32767),i*2);return data;}
 function inside(file,dir){const rel=path.relative(dir,file);return rel&&!rel.startsWith('..')&&!path.isAbsolute(rel);}
-const root=path.resolve(__dirname,'../..'),requestDir=path.join(root,'.daily-runtime','tts-requests'),outDir=path.join(root,'.daily-runtime','tts-output');
+const root=path.resolve(__dirname,'../..'),requestDir=runtimePath('tts-requests'),outDir=runtimePath('tts-output');
 function createTts(){
-  const model=path.join(root,'.daily-runtime','tts','kokoro-multi-lang-v1_1');
+  const model=runtimePath('tts','kokoro-multi-lang-v1_1');
   return new sherpa.OfflineTts({model:{kokoro:{model:path.join(model,'model.onnx'),voices:path.join(model,'voices.bin'),tokens:path.join(model,'tokens.txt'),dataDir:path.join(model,'espeak-ng-data'),lexicon:path.join(model,'lexicon-us-en.txt')+','+path.join(model,'lexicon-zh.txt')},debug:false,numThreads:4,provider:'cpu'},maxNumSentences:1});
 }
 async function generate(tts,request){

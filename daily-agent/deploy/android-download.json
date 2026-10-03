@@ -1,0 +1,10 @@
+{
+  "signingCertificateSha256": "85a596e6d66209c83eb7bb8707b1efe771266b0459bcf7a837f7187aa5c91415",
+  "version": "0.1.0-preview.10",
+  "schema": 1,
+  "sha256": "80a8a9e696b0e80d3306ed84caa8fead9167d4c04b01168f719ddec33eb1a9fb",
+  "versionCode": 10,
+  "minimumCompatibleVersionCode": 10,
+  "size": 2691613,
+  "url": "https://github.com/OverGreen996/Daily-Agent/releases/download/android-preview-10/DailyPet-Android.apk"
+}

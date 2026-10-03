@@ -20,7 +20,7 @@ namespace DailyPet {
   }
   sealed class KokoroTts : IDisposable {
     readonly string root;readonly object gate=new object();readonly JavaScriptSerializer json=new JavaScriptSerializer();Process process;TaskCompletionSource<bool> ready;TaskCompletionSource<Dictionary<string,object>> response;Action<byte[]> responseAudio;string responseId,outputFile,errorText="";
-    public bool Available{get{return File.Exists(Path.Combine(root,".daily-runtime","tts","kokoro-multi-lang-v1_1","model.onnx"))&&File.Exists(Path.Combine(root,"daily-agent","scripts","kokoro-tts.cjs"));}}
+    public bool Available{get{return !String.IsNullOrWhiteSpace(root)&&File.Exists(RuntimePaths.Get(root,"tts","kokoro-multi-lang-v1_1","model.onnx"))&&File.Exists(Path.Combine(root,"daily-agent","scripts","kokoro-tts.cjs"));}}
     public bool Warm{get{lock(gate)return process!=null&&!process.HasExited&&ready!=null&&ready.Task.Status==TaskStatus.RanToCompletion;}}
     public KokoroTts(string root){this.root=root;}
     public async Task WarmUp(){
@@ -42,7 +42,7 @@ namespace DailyPet {
     void OnOutput(object sender,DataReceivedEventArgs e){if(String.IsNullOrWhiteSpace(e.Data))return;try{var data=json.Deserialize<Dictionary<string,object>>(e.Data);lock(gate){if(data.ContainsKey("ready")){ready.TrySetResult(true);return;}if(response!=null&&Convert.ToString(data["id"])==responseId){if(data.ContainsKey("audio")){try{if(responseAudio!=null)responseAudio(Convert.FromBase64String(Convert.ToString(data["audio"])));}catch(Exception ex){response.TrySetException(ex);}return;}response.TrySetResult(data);}}}catch{/* native diagnostics are ignored; protocol lines are JSON */}}
     public async Task<string> Generate(string text,string voiceId,double speed,Action<byte[]> onAudio=null){
       var voice=KokoroVoiceCatalog.Find(String.IsNullOrEmpty(voiceId)?"zf_001":voiceId);if(voice==null)throw new InvalidOperationException("找不到選定的 Kokoro 聲線。");await WarmUp();Cleanup();
-      string id=Guid.NewGuid().ToString("N"),outputDir=Path.Combine(root,".daily-runtime","tts-output");Directory.CreateDirectory(outputDir);outputFile=Path.Combine(outputDir,id+".wav");Task<Dictionary<string,object>> wait;
+      string id=Guid.NewGuid().ToString("N"),outputDir=RuntimePaths.Get(root,"tts-output");Directory.CreateDirectory(outputDir);outputFile=Path.Combine(outputDir,id+".wav");Task<Dictionary<string,object>> wait;
       lock(gate){if(response!=null&&!response.Task.IsCompleted)throw new InvalidOperationException("Kokoro 正在產生上一段語音。");responseId=id;responseAudio=onAudio;response=new TaskCompletionSource<Dictionary<string,object>>();wait=response.Task;string textBase64=Convert.ToBase64String(Encoding.UTF8.GetBytes(text));process.StandardInput.WriteLine(json.Serialize(new {id=id,textBase64=textBase64,sid=voice.Sid,speed=Math.Max(.7,Math.Min(1.4,speed)),stream=onAudio!=null,output=outputFile}));process.StandardInput.Flush();}
       if(await Task.WhenAny(wait,Task.Delay(60000))!=wait){CancelCurrent();throw new TimeoutException("Kokoro 產生語音超過一分鐘，已停止。");}Dictionary<string,object> result;
       try{result=await wait;}finally{lock(gate){if(response!=null&&wait==response.Task){response=null;responseId=null;responseAudio=null;}}}

@@ -1,3 +1,5 @@
+> 歷史文件：保留當時的版本與測試狀態。最新功能／安裝以 [0.2.2 介紹](docs/現版本介紹.md) 與 [操作手冊](deploy/使用教學.md) 為準。
+
 # v0.2.1 變更索引
 
 - core：AgentCore、createAgent、ConversationControls、DocumentCommands、MemoryCommands：對話路由、ICS、手機、文件比較、Pin 衝突、context 保護。

@@ -1,8 +1,9 @@
 param([switch]$NoBrowser)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Daily-SetupState.ps1')
 $projectDir=$PSScriptRoot
 if(Test-Path (Join-Path $projectDir 'vendor\node\node.exe')){$env:PATH=(Join-Path $projectDir 'vendor\node')+';'+$env:PATH}
-$runtimeDir=Join-Path $projectDir '.daily-runtime'
+$runtimeDir=Get-DailyRuntimePath $PSScriptRoot
 $ollamaExe=Join-Path $runtimeDir 'ollama\ollama.exe'
 if (!(Test-Path -LiteralPath $ollamaExe)) { throw 'Please run Setup-DailyAgent.ps1 first.' }
 $env:OLLAMA_HOST='127.0.0.1:11435'

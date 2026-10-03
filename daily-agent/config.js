@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import fs from "node:fs";
+import { runtimePath } from "./core/RuntimePaths.cjs";
 export const root = path.dirname(fileURLToPath(import.meta.url));
 const localEnv = path.join(root, ".env.local");
 if (fs.existsSync(localEnv)) process.loadEnvFile(localEnv);
@@ -10,7 +11,7 @@ export const config = {
   dataDir: process.env.DAILY_DATA || path.join(root, "data"),
   timeZone: process.env.DAILY_TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone,
   modelUrl: process.env.OLLAMA_HOST_URL || "http://127.0.0.1:11435",
-  imageRuntimeDir: process.env.DAILY_COMFY_DIR || path.resolve(root, "../.daily-runtime/ComfyUI_windows_portable"),
+  imageRuntimeDir: process.env.DAILY_COMFY_DIR || runtimePath("ComfyUI_windows_portable"),
   imageCheckpoint: process.env.DAILY_IMAGE_CHECKPOINT || "NoobAI-XL-v1.1.safetensors",
   imageQualityCheckpoint: process.env.DAILY_IMAGE_QUALITY_CHECKPOINT || "NoobAI-XL-Vpred-v1.0-cyberfix-perpendicular.safetensors",
   imagePhotoCheckpoint: process.env.DAILY_IMAGE_PHOTO_CHECKPOINT || "PornMaster-Pro-SDXL-V7-VAE.safetensors",
@@ -37,6 +38,9 @@ export const config = {
   memoryCompanion:true,
   screenVision:false,
   searxngUrl: process.env.DAILY_SEARXNG_URL || "",
+  xngHubUrl: process.env.DAILY_XNG_HUB_URL || "",
+  googleDriveClientId: process.env.DAILY_GOOGLE_CLIENT_ID || "",
+  googleDriveClientSecret: process.env.DAILY_GOOGLE_CLIENT_SECRET || "",
   weatherEnabled: false,
   weatherRefreshMs: Math.min(
     1200000,

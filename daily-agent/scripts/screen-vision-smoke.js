@@ -5,7 +5,7 @@ import {createAgent} from '../core/createAgent.js';
 import {companionEvent} from '../core/CompanionEvents.js';
 const dir=path.resolve('test-output/screen-vision-'+Date.now());fs.mkdirSync(dir,{recursive:true});
 const initial=await(await fetch('http://127.0.0.1:11435/api/ps')).json();assert.equal(initial.models.length,0,'Run only when production models are unloaded');
-const agent=createAgent({dataDir:path.join(dir,'data'),perception:false,lightLookup:false,weatherEnabled:false});const report={started:new Date().toISOString()};
+const agent=await createAgent({dataDir:path.join(dir,'data'),perception:false,lightLookup:false,weatherEnabled:false});const report={started:new Date().toISOString()};
 try{
  agent.memory.working.add('user','這是要保留的上下文。','smoke');const before=agent.memory.working.list();
  const started=Date.now();report.observation=await agent.companion.lightPerception.vision.observe({image:fs.readFileSync('test-output/vision-427.png').toString('base64')});

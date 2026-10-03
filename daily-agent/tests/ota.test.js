@@ -24,3 +24,18 @@ test('Android OTA advertises matching APK and rejects tampered binaries or metad
   assert.equal((await fetch(`http://127.0.0.1:${gateway.port}/v1/updates`)).status,503);
   await assert.rejects(androidUpdate(null),/unavailable/);
 });
+test('signing transition distinguishes old APK reinstall from future compatible updates',async t=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'daily-signing-ota-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+ const apk=path.join(dir,'test.apk'),data=Buffer.from('signed-generation-two');await fs.writeFile(apk,data);
+ const meta={schema:1,version:'preview.11',versionCode:11,size:data.length,sha256:createHash('sha256').update(data).digest('hex'),signingCertificateSha256:'a'.repeat(64),minimumCompatibleVersionCode:10};
+ await fs.writeFile(path.join(dir,'update.json'),JSON.stringify(meta));
+ const old=await androidUpdate(apk,{installedVersionCode:9});assert.equal(old.android.requires_reinstall,true);assert.equal(old.android.migration.action,'reinstall');
+ const current=await androidUpdate(apk,{installedVersionCode:10});assert.equal(current.android.requires_reinstall,false);assert.equal(current.android.minimumCompatibleVersionCode,10);
+ assert.equal((await androidUpdate(apk)).android.requires_reinstall,null);
+ const gateway=new RemoteGateway({remote:{devices:{list:()=>[]}}},{port:0,apkPath:apk});await gateway.start();t.after(()=>gateway.stop());
+ const base=`http://127.0.0.1:${gateway.port}/v1/updates`;
+ assert.equal((await (await fetch(base+'?versionCode=9')).json()).android.requires_reinstall,true);
+ assert.equal((await (await fetch(base+'?versionCode=10')).json()).android.requires_reinstall,false);
+ assert.equal((await fetch(base+'?versionCode=oops')).status,400);
+ meta.minimumCompatibleVersionCode=12;await fs.writeFile(path.join(dir,'update.json'),JSON.stringify(meta));await assert.rejects(androidUpdate(apk),/mismatch/);
+});

@@ -3,10 +3,11 @@ import path from 'node:path';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {ComfyUIImageRuntime,normalizeGenerationSpec} from '../models/ImageGeneration.js';
+import {runtimePath} from '../core/RuntimePaths.cjs';
 
 const execFileAsync=promisify(execFile);
 const project=path.resolve(import.meta.dirname,'../..');
-const root=path.join(project,'.daily-runtime','ComfyUI_windows_portable');
+const root=runtimePath('ComfyUI_windows_portable');
 const outputDir=path.join(project,'daily-agent','test-output','photo-generation');
 const checkpoint=path.join(root,'ComfyUI','models','checkpoints','PornMaster-Pro-SDXL-V7-VAE.safetensors');
 const runtime=new ComfyUIImageRuntime({root,checkpoint,photoCheckpoint:checkpoint,outputDir,port:8191});

@@ -8,7 +8,7 @@ import { companionEvent } from "../core/CompanionEvents.js";
 const exec = promisify(execFile),
   delay = (ms) => new Promise((r) => setTimeout(r, ms));
 const directory = path.resolve("test-output/v02-" + Date.now());
-const agent = createAgent({ dataDir: directory, lightLookup: false });
+const agent =await createAgent({ dataDir: directory, lightLookup: false });
 const report = {
   started: new Date().toISOString(),
   dataDir: directory,

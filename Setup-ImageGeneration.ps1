@@ -1,17 +1,19 @@
 ﻿param([switch]$SkipModel,[string]$Profiles='all')
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Daily-SetupState.ps1')
 $chosen=@($Profiles.Split(',') | ForEach-Object {$_.Trim().ToLowerInvariant()})
 foreach($profile in $chosen){if($profile -notin @('all','legacy','anime','photo')){throw ('Unknown image profile: '+$profile)}}
 $legacy=$chosen -contains 'all' -or $chosen -contains 'legacy'
 $anime=$chosen -contains 'all' -or $chosen -contains 'anime'
 $photo=$chosen -contains 'all' -or $chosen -contains 'photo'
 $root=$PSScriptRoot
-$runtime=Join-Path $root '.daily-runtime'
+$runtime=Get-DailyRuntimePath $PSScriptRoot
 $downloads=Join-Path $runtime 'downloads'
 $archive=Join-Path $downloads 'ComfyUI_windows_portable_nvidia_cu126.7z'
 $seven=Join-Path $downloads '7zr.exe'
 $target=Join-Path $runtime 'ComfyUI_windows_portable'
 $comfyUrl='https://github.com/Comfy-Org/ComfyUI/releases/download/v0.37.0/ComfyUI_windows_portable_nvidia_cu126.7z'
+$comfySha='4F8C587C8319A3595DCDC6B8FBFC7234D2D02FA6B1A328C1AB3E819C97D95FB8'
 $modelUrl='https://huggingface.co/Laxhar/noobai-XL-1.1/resolve/main/NoobAI-XL-v1.1.safetensors?download=true'
 $modelSha='6681E8E4B134C81F16533ACEDB0D406D7E5E366E1624B4105178C64D00B05D51'
 $qualityModelUrl='https://huggingface.co/Panchovix/noobai-XL-Vpred-1.0-perpendicular-cyberfix/resolve/main/NoobAI-XL-Vpred-v1.0-cyberfix-perpendicular.safetensors?download=true'
@@ -21,26 +23,40 @@ $photoModelSha='57B14ABE8A6634C1F3EA24F310A5AB2F49968C5ADF033A69EE2BF656737A1C17
 $upscalerUrl='https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.2.4/RealESRGAN_x4plus_anime_6B.pth'
 $upscalerSha='F872D837D3C90ED2E05227BED711AF5671A6FD1C9F7D7E91C911A61F155E99DA'
 New-Item -ItemType Directory -Force $downloads | Out-Null
-function Download-Resume([string]$url,[string]$file) {
+# This portable build uses CUDA. Explain unsupported hardware before downloading gigabytes.
+try {
+  $gpuMemory=@(& nvidia-smi.exe --query-gpu=memory.total --format=csv,noheader,nounits 2>$null)
+  if($LASTEXITCODE -ne 0 -or !@($gpuMemory | Where-Object {[int]$_.Trim() -ge 8192}).Count){throw 'Unsupported GPU'}
+}catch{throw '本地生圖需要 NVIDIA 顯示卡及至少 8 GB 顯存。請先安裝顯示卡驅動；也可以先取消生圖，聊天與記憶仍可使用。'}
+function Test-ComfyEnvironment {
+  $python=Join-Path $target 'python_embeded\python.exe'
+  if(!(Test-Path -LiteralPath $python) -or !(Test-Path -LiteralPath (Join-Path $target 'ComfyUI\main.py'))){return $false}
+  try{& $python -s -c 'import torch, numpy, aiohttp, safetensors; assert torch.cuda.is_available()' 2>$null | Out-Null;return $LASTEXITCODE -eq 0}catch{return $false}
+}
+function Download-Resume([string]$url,[string]$file,[string]$sha='',[long]$bytes=0) {
   Write-Host ('下載 '+[IO.Path]::GetFileName($file)+'（可中斷續傳）…')
+  if($sha){Receive-DailyAsset $root $url $file $sha ([IO.Path]::GetFileName($file)) $bytes;return}
   & curl.exe -L --fail --retry 5 --retry-delay 5 --continue-at - --output $file $url
   if($LASTEXITCODE -ne 0){throw '下載失敗：'+$file}
 }
 if(!(Test-Path -LiteralPath $seven) -or (Get-Item -LiteralPath $seven).Length -lt 500000){Download-Resume 'https://www.7-zip.org/a/7zr.exe' $seven}
-if(!(Test-Path -LiteralPath (Join-Path $target 'python_embeded\python.exe'))){
-  if(!(Test-Path -LiteralPath $archive) -or (Get-Item -LiteralPath $archive).Length -lt 1800000000){Download-Resume $comfyUrl $archive}
+if(!(Test-ComfyEnvironment)){
+  Download-Resume $comfyUrl $archive $comfySha 1867201814
+  Set-DailyTransferState $root @{schema=1;status='extracting';title='正在準備生圖環境，這一步不需操作。'}
   New-Item -ItemType Directory -Force $target | Out-Null
   & $seven x $archive ('-o'+$runtime) -y
   if($LASTEXITCODE -ne 0){throw 'ComfyUI 解壓失敗'}
 }
+if(!(Test-ComfyEnvironment)){throw '生圖環境未準備完整。請更新 NVIDIA 驅動後，按「繼續下載／修復」；不需要手動刪除檔案。'}
+[IO.File]::WriteAllText((Join-Path $target '.environment-ready.json'),('{"schema":1,"ready":true}'),[Text.UTF8Encoding]::new($false))
 $checkpoint=Join-Path $target 'ComfyUI\models\checkpoints\NoobAI-XL-v1.1.safetensors'
 $qualityCheckpoint=Join-Path $target 'ComfyUI\models\checkpoints\NoobAI-XL-Vpred-v1.0-cyberfix-perpendicular.safetensors'
 $photoCheckpoint=Join-Path $target 'ComfyUI\models\checkpoints\PornMaster-Pro-SDXL-V7-VAE.safetensors'
 $upscaler=Join-Path $target 'ComfyUI\models\upscale_models\RealESRGAN_x4plus_anime_6B.pth'
-if(!$SkipModel -and $legacy -and (!(Test-Path -LiteralPath $checkpoint) -or (Get-Item -LiteralPath $checkpoint).Length -lt 7100000000)){Download-Resume $modelUrl $checkpoint}
-if(!$SkipModel -and $anime -and (!(Test-Path -LiteralPath $qualityCheckpoint) -or (Get-Item -LiteralPath $qualityCheckpoint).Length -lt 6938000000)){Download-Resume $qualityModelUrl $qualityCheckpoint}
-if(!$SkipModel -and $photo -and (!(Test-Path -LiteralPath $photoCheckpoint) -or (Get-Item -LiteralPath $photoCheckpoint).Length -lt 7100000000)){Download-Resume $photoModelUrl $photoCheckpoint}
-if(!$SkipModel -and $anime -and (!(Test-Path -LiteralPath $upscaler) -or (Get-Item -LiteralPath $upscaler).Length -lt 17900000)){Download-Resume $upscalerUrl $upscaler}
+if(!$SkipModel -and $legacy){Download-Resume $modelUrl $checkpoint $modelSha}
+if(!$SkipModel -and $anime){Download-Resume $qualityModelUrl $qualityCheckpoint $qualityModelSha}
+if(!$SkipModel -and $photo){Download-Resume $photoModelUrl $photoCheckpoint $photoModelSha}
+if(!$SkipModel -and $anime){Download-Resume $upscalerUrl $upscaler $upscalerSha}
 if(!(Test-Path -LiteralPath (Join-Path $target 'python_embeded\python.exe'))){throw '找不到 ComfyUI Python runtime'}
 if(!$SkipModel -and $legacy -and (!(Test-Path -LiteralPath $checkpoint) -or (Get-Item -LiteralPath $checkpoint).Length -lt 7100000000)){throw 'NoobAI XL checkpoint 不完整'}
 if(!$SkipModel -and $legacy -and (Get-FileHash -LiteralPath $checkpoint -Algorithm SHA256).Hash -ne $modelSha){throw 'NoobAI XL checkpoint 雜湊不符，請刪除該檔後重新執行安裝。'}

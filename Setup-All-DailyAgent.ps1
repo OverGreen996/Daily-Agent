@@ -1,7 +1,8 @@
 ﻿param([switch]$CheckOnly,[switch]$NoLaunch,[string]$Features='core',[switch]$Choose)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'Daily-SetupState.ps1')
 $root=$PSScriptRoot
-$runtime=Join-Path $root '.daily-runtime'
+$runtime=Get-DailyRuntimePath $PSScriptRoot
 $valid=@('core','tts','stt','browser','anime','photo','mobile','search')
 if($Choose -and !$CheckOnly){$Features=& (Join-Path $root 'Select-DailyFeatures.ps1') -Runtime $runtime;if(!$Features){return}}
 $selected=@('core')+@($Features.Split(',') | ForEach-Object {$_.Trim().ToLowerInvariant()} | Where-Object {$_})
@@ -29,7 +30,7 @@ try {
   New-Item -ItemType Directory -Force $runtime | Out-Null
   @{schema=1;features=$selected} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $runtime 'setup-selection.json') -Encoding UTF8
   $statePath=Join-Path $runtime 'full-setup.json'
-  $state=@{schema=1;status='running';features=$selected;steps=@();updatedAt=[DateTime]::UtcNow.ToString('o')}
+  $state=@{schema=1;status='running';features=$selected;total=$steps.Count;steps=@();updatedAt=[DateTime]::UtcNow.ToString('o')}
   function Save-Progress {
     $state.updatedAt=[DateTime]::UtcNow.ToString('o')
     $state | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath ($statePath+'.tmp') -Encoding UTF8
@@ -38,17 +39,17 @@ try {
   # Every retry checks real assets again. A completion marker never overrides a missing file.
   Save-Progress
   Write-Host '開始配置所選功能：會沿用已下載資源，請保持視窗開啟。' -ForegroundColor Cyan
-  Write-Host '只執行勾選功能及必要的基本配置。下載中斷後可雙擊桌面 Daily Agent Setup 繼續。'
+  Write-Host '只下載勾選功能。中斷後開啟桌面「Daily Agent 功能與設定」，按繼續下載即可。'
   $failures=@()
   foreach($step in $steps){
     Write-Host ('['+($state.steps.Count+1)+'/'+$steps.Count+'] '+$step.name) -ForegroundColor Cyan
-    $record=@{name=$step.name;status='running'}
+    $record=@{name=$step.name;status='running';startedAt=[DateTime]::UtcNow.ToString('o')}
     $state.steps+=,$record;Save-Progress
     try {
       # Child process isolates exit codes and environment changes in individual installers.
       $stepArguments=@($step.arguments)
       & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root $step.file) @stepArguments
-      if($LASTEXITCODE -eq 3010){throw 'Windows 需要重開機。重新開機後，雙擊桌面 Daily Agent Setup 繼續。'}
+      if($LASTEXITCODE -eq 3010){throw 'Windows 需要重開機。重新開機後開啟「Daily Agent 功能與設定」即可繼續。'}
       if($LASTEXITCODE -ne 0){throw ('配置結束，錯誤代碼：'+$LASTEXITCODE)}
       $record.status='complete'
     } catch {
@@ -60,10 +61,10 @@ try {
   }
   if($failures.Count){
     $state.status='incomplete';Save-Progress
-    throw ('尚未完成的項目：'+($failures -join ', ')+'。請依上方錯誤處理，再雙擊桌面 Daily Agent Setup 重試；已下載資源會保留。進度檔：'+$statePath)
+    throw ('尚未完成的項目：'+($failures -join ', ')+'。請開啟桌面「Daily Agent 功能與設定」，按「繼續下載／修復」；已下載資源與記憶會保留。')
   }
   $state.status='complete';Save-Progress
-  Write-Host '所選功能配置已完成，即將啟動桌寵。手機配對、Cloudflare 登入與網域請使用自己的設定。' -ForegroundColor Green
+  Write-Host '所選功能配置已完成。手機配對、Cloudflare 登入與網域請使用自己的設定。' -ForegroundColor Green
   if(!$NoLaunch){
     & (Join-Path $root 'Stop-DailyAgent.ps1')
     & (Join-Path $root 'Start-DailyAgent.ps1')

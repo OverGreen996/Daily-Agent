@@ -5,7 +5,7 @@ import {createAgent} from '../core/createAgent.js';
 import {LightPerception} from '../idle/LightPerception.js';
 const dir=path.resolve('test-output/companion-memory-'+Date.now());fs.mkdirSync(dir,{recursive:true});
 const initial=await(await fetch('http://127.0.0.1:11435/api/ps')).json();assert.equal(initial.models.length,0,'Only run while production models are unloaded');
-const agent=createAgent({dataDir:path.join(dir,'data'),perception:false,lightLookup:false,weatherEnabled:false,memoryCompanion:true});
+const agent=await createAgent({dataDir:path.join(dir,'data'),perception:false,lightLookup:false,weatherEnabled:false,memoryCompanion:true});
 const report={started:new Date().toISOString()};let fullLoads=0;
 agent.full.load=async()=>{fullLoads++;throw Error('Full GPU model must not load');};
 const load=agent.idleRuntime.load.bind(agent.idleRuntime);

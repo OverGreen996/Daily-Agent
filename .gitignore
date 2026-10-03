@@ -17,3 +17,7 @@ output/
 *.log
 daily-agent/android/local.properties
 daily-agent/android/.gradle/
+# 同一工作區的其他專案與私人備份，不屬於 Daily Agent 發布。
+_backups/
+Framecraft-README.md
+*.password.xml

@@ -272,6 +272,15 @@ function companionFixture(chat) {
   });
   return { c, calls, messages, events };
 }
+test('truncated idle JSON stays quiet, keeps no fabricated memory and still unloads CPU model',async()=>{
+ const {c,calls,messages,events}=companionFixture(async(_messages,options)=>{
+  assert.equal(options.format.additionalProperties,false);
+  return {message:{content:'{"text":"unfinished'}};
+ });
+ assert.equal(await c.speak('work_long',{process:'ZBrush',title:'drawing'}),null);
+ assert.deepEqual(calls,['CPU load','CPU chat','CPU unload']);
+ assert.equal(messages.length,0);assert.equal(events.some(e=>e.type==='pet_bubble'),false);
+});
 test("event speaks through CPU on demand, unloads before bubble and never loads Full", async () => {
   const { c, calls, events } = companionFixture(async () => ({
     message: {
@@ -293,7 +302,7 @@ test("invalid Idle response still unloads CPU; cancellation cannot leak a stale 
   const invalid = companionFixture(async () => ({
     message: { content: "invalid json" },
   }));
-  await assert.rejects(() => invalid.c.speak("idle"));
+  assert.equal(await invalid.c.speak("idle"),null);
   assert.equal(invalid.calls.at(-1), "CPU unload");
   let c;
   const fixture = companionFixture(async () => {
@@ -339,7 +348,7 @@ test("SearXNG is opt-in, uses JSON, reads max three pages and closes ephemeral b
         ok: true,
         json: async () => ({
           results: Array.from({ length: 8 }, (_, i) => ({
-            url: `https://example.com/${i}`,
+            url: `https://example${i}.com/${i}`,
             content: "test",
           })),
         }),

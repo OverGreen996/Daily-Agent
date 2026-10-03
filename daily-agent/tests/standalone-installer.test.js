@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 const source=fileURLToPath(new URL('../deploy/Installer.cs',import.meta.url));
+const theme=fileURLToPath(new URL('../deploy/DailyUi.cs',import.meta.url));
 const compiler=path.join(process.env.WINDIR||'C:/Windows','Microsoft.NET/Framework64/v4.0.30319/csc.exe');
 const run=(exe,args)=>spawnSync(exe,args,{encoding:'utf8',windowsHide:true,timeout:60000});
 test('standalone Setup embeds its payload, rejects corruption and ZIP traversal', {skip:process.platform!=='win32'},()=>{
@@ -19,7 +20,7 @@ test('standalone Setup embeds its payload, rejects corruption and ZIP traversal'
       const made=run('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',ps]);assert.equal(made.status,0,made.stderr);
       fs.writeFileSync(hash,scenario==='bad-hash'?'0'.repeat(64):createHash('sha256').update(fs.readFileSync(zip)).digest('hex'));
       const exe=path.join(folder,'DailyAgent-Setup.exe');
-      const built=run(compiler,['/nologo','/target:winexe','/platform:x64','/reference:System.Windows.Forms.dll','/reference:System.IO.Compression.dll','/reference:System.IO.Compression.FileSystem.dll','/resource:'+zip+',DailyAgent.Package','/resource:'+hash+',DailyAgent.Hash','/out:'+exe,source]);assert.equal(built.status,0,built.stdout+built.stderr);
+      const built=run(compiler,['/nologo','/target:winexe','/platform:x64','/reference:System.Windows.Forms.dll','/reference:System.Drawing.dll','/reference:System.IO.Compression.dll','/reference:System.IO.Compression.FileSystem.dll','/resource:'+zip+',DailyAgent.Package','/resource:'+hash+',DailyAgent.Hash','/out:'+exe,theme,source]);assert.equal(built.status,0,built.stdout+built.stderr);
       // Remove the external payload and checksum before launching the EXE.
       fs.unlinkSync(zip);fs.unlinkSync(hash);
       const out=path.join(folder,'out'),result=run(exe,['--extract-only',out]);

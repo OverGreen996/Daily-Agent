@@ -1,0 +1,68 @@
+[
+  {
+    "id": "search",
+    "name": "網路搜尋",
+    "requires": [],
+    "description": "消費通用 XNG API；保留來源證據與免費本機備援。"
+  },
+  {
+    "id": "environment",
+    "name": "位置、天氣與畫面觀察",
+    "requires": [],
+    "description": "停用後不進行環境或畫面觀察；基本對話繼續。"
+  },
+  {
+    "id": "assistant",
+    "name": "個人資料、行程與待辦",
+    "requires": [],
+    "description": "管理姓名、工作、喜好、行程、待辦與提醒；停用不刪除資料。"
+  },
+  {
+    "id": "documents",
+    "name": "文件庫",
+    "requires": [],
+    "description": "文件匯入、OCR、摘要、比較；停用保留原檔與索引。"
+  },
+  {
+    "id": "images",
+    "name": "本地生圖",
+    "requires": [],
+    "description": "生圖與改圖；提示詞僅在當次會話，停用不載入生圖模型。"
+  },
+  {
+    "id": "companion",
+    "name": "待機陪伴",
+    "requires": [],
+    "description": "待機搭話與事件通知；不強制相依搜尋或環境觀察。"
+  },
+  {
+    "id": "mobile",
+    "name": "手機連線",
+    "requires": [],
+    "description": "APK 配對、手機位置、共享資料夾及 Cloudflare；使用自己的帳號。"
+  },
+  {
+    "id": "pocketdrop",
+    "name": "PocketDrop 傳送",
+    "requires": [],
+    "description": "Room 配對與文字傳送；和手機連線模組可分開停用。"
+  },
+  {
+    "id": "voice",
+    "name": "語音輸入與回覆",
+    "requires": [],
+    "description": "原生桌面端管理麥克風及語音；停用後仍能打字聊天。"
+  },
+  {
+    "id": "backup",
+    "name": "Google Drive 記憶備份",
+    "requires": [],
+    "description": "登入自己的 Google 帳號，備份記憶宮殿；預設不自動上傳，停用保留記憶與雲端備份。"
+  },
+  {
+    "id": "appearance",
+    "name": "寵物動畫圖分析",
+    "requires": [],
+    "description": "整張動畫圖的本地動作辨識；分格、去背及外觀編輯不需要生圖模型，圖片不寫入記憶宮殿。"
+  }
+]

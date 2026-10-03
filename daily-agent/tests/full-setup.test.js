@@ -11,6 +11,7 @@ test('full setup stays read-only in check mode and recovers a failed stage witho
   const run=(...args)=>spawnSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',script,'-Features','all',...args],{encoding:'utf8',timeout:60000,windowsHide:true});
   try{
     fs.copyFileSync(new URL('../../Setup-All-DailyAgent.ps1',import.meta.url),script);
+    fs.copyFileSync(new URL('../../Daily-SetupState.ps1',import.meta.url),path.join(dir,'Daily-SetupState.ps1'));
     for(const file of files)fs.writeFileSync(path.join(dir,file),`Add-Content (Join-Path $PSScriptRoot 'calls.txt') '${file}'\nexit 0`);
     assert.equal(run('-CheckOnly').status,0);
     assert.equal(fs.existsSync(path.join(dir,'.daily-runtime')),false);
@@ -39,6 +40,7 @@ test('selective setup runs only chosen downloads and retains selections for retr
  const run=(...args)=>spawnSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',script,'-NoLaunch',...args],{encoding:'utf8',timeout:60000,windowsHide:true});
  try{
   fs.copyFileSync(new URL('../../Setup-All-DailyAgent.ps1',import.meta.url),script);
+  fs.copyFileSync(new URL('../../Daily-SetupState.ps1',import.meta.url),path.join(dir,'Daily-SetupState.ps1'));
   for(const file of files)fs.writeFileSync(path.join(dir,file),`Add-Content (Join-Path $PSScriptRoot 'calls.txt') ('${file} '+($args -join ' '))\nexit 0`);
   assert.equal(run().status,0);
   let calls=fs.readFileSync(path.join(dir,'calls.txt'),'utf8');assert.match(calls,/Setup-DailyAgent.ps1 -SkipVoice/);assert.equal(calls.trim().split('\n').length,1);

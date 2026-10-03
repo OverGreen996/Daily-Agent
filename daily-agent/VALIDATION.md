@@ -1,46 +1,53 @@
-# Daily Agent v0.2.1 驗證（2026-09-27）
+# 0.2.2 預覽版驗證｜2026-10-03
 
-本頁為目前結果，較早階段紀錄保留於 VALIDATION-HISTORY.md；其中「未完成」是當時狀態，請以本頁為準。
+本頁是目前版本的驗證摘要。舊紀錄見 [0.2.1 驗證](docs/驗證歷史-0.2.1.md)、[歷史紀錄](VALIDATION-HISTORY.md) 及 [Android 歷史](android/VALIDATION.md)，舊測試數量與舊雜湊不代表這次發布。
 
-## 真實模型與資源
+## 自動測試
 
-證據：`test-output/completion-1790509145466/report.json`。
+發布前同步最新 XNG 公開核心副本後，`npm test` **283／283 通過，0 失敗、0 跳過**。涵蓋對話與模型生命週期、記憶與助理、文件、搜尋證據、模組/API 認證、Drive 模擬接口、PocketDrop 模擬連線、手機 API、OTA、安裝校驗、卸載保留記憶及下載續傳。
 
-- CPU embedding 用中文問題找回英文建築預算文件，排除食譜。
-- 真實 Qwen 比較兩文件，正確列出 180,000 / 260,000 元及 2027/02/14、2027/03/21。
-- ACTIVE context 16,384；原生 tokenizer revision `851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a`。
-- ACTIVE 模型回報 VRAM 3,627,171,183 bytes（約 3.38 GiB）；整卡 5801 MiB，基線 1328 MiB。
-- IDLE 主模型確認不存在；0.8B Q4_K_M 的 size_vram=0、context=2048。生成後 CPU 小模型亦卸載。
-- IDLE 整卡 1327 MiB，與基線接近；不是宣稱整台電腦 VRAM=0。
-- CPU 小模型載入期間專案程序 RAM 約 897 MiB；生成後約 253 MiB。此隔離測試包含 Node/Ollama，未含桌寵與環境 watcher；實際部署另量測。
-- 喚醒 4B 後正確引用先前 Idle 語句；結束 models=[]。
-- 本輪測試使用顯式 Idle 切換；真正五分鐘計時的既有證據為 `test-output/real-five-minute-idle.json`。
+獨立 XNG 上游另通過 **96／96** 核心測試；Daily Agent 不修改上游服務與規則。公開副本匯入測試在沒有相鄰 XNG checkout 的情況驗證，`snapshot.json` 的檔案雜湊全部核對。
 
-## UI、音訊、環境與安裝
+原生設定視窗、Windows 桌寵及外觀編輯器已編譯／自檢。Android 已完成 Java／資源／DEX／對齊建置、三組 JVM 規則測試與 APK v2/v3 簽章驗證。這些自檢不替代手機實機驗收。
 
-- 原生 exe 編譯成功；`native-self-test.json` 40 個定位案例，`native-pointer-test.json` 12 組互動（點擊、右鍵、拖曳、歷史、捲動、逐字、半透明設定）。
-- `test-output/voice/voice-report.json`：實際 Windows TTS 產生 WAV，再送 Windows zh-TW 辨識；「露米現在幾點」正確辨識，confidence 約 0.981。這不代表真人麥克風在所有噪音情況都可靠；一般聽寫曾誤辨，已補常用口令 grammar。
-- `test-output/perception-report.json`：一次真實前景擷取、640×360、OCR、十分鐘 cooldown；不保存擷取影像或 OCR 內容。前景內容正確率未在此測試斷言；繁中／英文已用受控 PDF OCR 樣本驗證。
-- `test-output/palace-1790509061430/report.json`：`.ics` 經實際 API 匯入、Pin 衝突、Headless Edge 宮殿頁、原始對話及無 GPU 模型；後續正式命名統一為「記憶宮殿」。
-- `test-output/install-cycle-1790508859058/report.json`：實際安裝、更新、rollback、保留資料、拒絕雜湊不符的套件。正式包另於 dist 輸出。
-- 通知的 WinRT reader、來源事件與去重已串接，身分 MSIX 已成功建置與簽署；**未代使用者安裝信任憑證或同意 Windows 通知權限，真實通知接收尚待授權驗收**。
-- 手機 HTTPS、限時／單次配對、錯誤來源／未授權拒絕、GPS 降精度、撤銷已用本機 TLS 客戶端測試；**未連實體手機，不保證每一手機瀏覽器接受自簽憑證，也不保證鎖屏 GPS**。
+## 真實電腦與安裝
 
-## 自動測試範圍
+本輪在 Windows x64／RTX 3080 Ti 12 GB 上執行：
 
-既有 82 項測試，加上完成項目的記憶衝突、宮殿原文分頁、行事曆重複／例外／重啟去重、低頻 OCR、文件向量快取、通知、tokenizer、真實 TLS 配對及習慣序列。最終總數與部署資源記錄追加於下方。
+- 安裝隔離測試、升級、同版本修復、回復與雜湊不符拒絕，模型、宮殿及設定保留。
+- 基本與選配九項資源的下載、配置、再次執行重用既有模型。
+- 真實 Qwen 聊天、圖片理解、CPU embedding、文件比較、原生 PDF／OCR 與摘要。
+- Kokoro CPU 朗讀、合成 WAV 語音辨識與麥克風緩衝擷取；尚未驗收真人噪音環境。
+- 動漫／真人生圖，以及手機 API 的 1536×1536 圖片生成與授權傳輸；一次測試約 62 秒，並非所有硬體速度承諾。
+- 生圖提示詞不寫入宮殿，模型在工作完成後卸載。
+- 模組停用、缺失入口、資料保留、插件認證／手機工具限制與停止清理。
 
-## 已知界線
+## 升級後 XNG 接口
 
-SearXNG 延後；陪玩、生圖不在本輪。無新 GPU 大模型，沒有訓練。官方天氣警報來源仍是預留事件；目前是 Open-Meteo 模型天氣變化提醒。OCR、Windows 聽寫和 Qwen 回答均可能誤讀／幻覺，重要數字仍可追溯原件。向量目前採 CPU 線性掃描，沒有 ANN。通知授權、手機信任與真人麥克風驗收需要本人裝置操作。
+實際連接獨立 Hub 8889、免費搜尋 8888，驗證官方文件、Steam 台灣價格、預算推薦、當日新聞及快取。
 
-## 最終回歸與部署
+已核實的 Steam 價格以結構化 TWD 數值產生回答，另測「現在價格」會自動搜尋，避免語言模型把原價或折扣改錯。新聞缺少當日來源時保留證據限制，不宣稱搜尋離線，也不把抓取時間冒充發布時間。
 
-- `npm test`：94/94 通過；最後 phone/location cache 修正另跑 completion 12/12。
-- 記憶宮殿命名後 UI 證據：`test-output/palace-1790509453523`，已檢視 screenshot。
-- `test-output/deployment-report.json`：v0.2.1 後端與 `DailyPet-A22CF6045DC8.exe` 已重新啟動，保留原 11 則 Working Memory；Idle models=[]。
-- **實際部署 Idle RAM 429.5 MiB**，含 Node、Ollama、前景 watcher、原生桌寵與其 console hosts；模型 VRAM 0，整卡 1327 MiB。
-- 首次語音、桌面 OCR、通知、背景天氣均維持明確對話觸發／選用；未代替使用者授予系統權限。
+本次同步副本、測試與發布不修改既有 Cloudflare 帳號、路由或 Windows 服務；共用 XNG 保持運行。Daily Agent 與它自己的模型程序在實測結束後關閉。
 
-正式套件：`dist/0.2.1-windows-final.zip`，79,798,366 bytes，SHA256 `B98A8848DD4173790DC0C8DB37BDBB220576C921AF94B7F09169DFCCAF75EA30`。
-正式套件再驗證：`test-output/install-cycle-1790509744212/report.json`（安裝／更新／回復／防竄改），`launch-report.json`（安裝後以 bundled Node 啟動 API、tokenizer 與原生 UI self-test）。測試未搬動或覆蓋使用者原有專案資料。
+## APK 與發布校驗
+
+Android Preview 10：versionCode `10`，大小 `2,691,613` bytes。
+
+SHA-256：`80a8a9e696b0e80d3306ed84caa8fead9167d4c04b01168f719ddec33eb1a9fb`。
+
+簽章憑證 SHA-256：`85a596e6d66209c83eb7bb8707b1efe771266b0459bcf7a837f7187aa5c91415`。
+
+固定新金鑰的備份恢復已實測；相同身份可再次建置，金鑰缺失時拒絕靜默換身份。GitHub 匿名下載已核對大小與雜湊，更新 metadata 與原生 QR Code URL 一致，實際畫面 QR 已解碼。
+
+Windows 發布包沒有 APK、模型或個人資料。每次版本的精確大小與 SHA-256 以該發布的 `update.json` 和 `SHA256SUMS.txt` 為準，不沿用舊版數值。
+
+## 尚未完成的驗收
+
+- Android 實體手機觸控、多指／縮放拉條、權限、OEM 背景限制、切網及耗電。
+- 真實 Google OAuth 帳號登入、上傳、下載與授權到期；本版需提供自己的 Desktop OAuth 用戶端。
+- PocketDrop 自己的真實 Room；本次連線、重啟與配對保持以模擬 TLS 測試驗證。
+- 真人麥克風噪音、各聲卡與硬體組合，以及不同顯卡的生圖相容性。
+- Windows 通知需使用者授權與身分套件；安裝器正式簽章尚未完成。
+
+本地測試輸出保存在開發機的 `test-output/`，其中可能包含環境資訊，不放進公開來源。此摘要記錄測試範圍，沒有把模擬測試當作真實帳號或實機測試。

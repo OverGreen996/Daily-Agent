@@ -1,7 +1,8 @@
+import { runtimePath } from "../core/RuntimePaths.cjs";
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-const dir=path.resolve('../.daily-runtime/tokenizer');await fs.mkdir(dir,{recursive:true});
+const dir=runtimePath("tokenizer");await fs.mkdir(dir,{recursive:true});
 const model='Qwen/Qwen3.5-4B';
 try {
   const saved=JSON.parse(await fs.readFile(path.join(dir,'manifest.json'),'utf8'));
