@@ -236,6 +236,7 @@ for (const definition of moduleCatalog)
     }
   });
 test("physically missing feature entry does not prevent startup or chat", () => {
+  fs.mkdirSync(path.resolve("test-output"), {recursive: true});
   const source = path.resolve("."),
     directory = fs.mkdtempSync(
       path.join(source, "test-output", "missing-feature-"),

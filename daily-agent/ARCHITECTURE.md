@@ -102,4 +102,3 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\daily-agent\desktop\Build-
 # 安裝目錄與執行資源
 
 安裝版以 `.daily-install.json` 確認安裝根目錄，程式碼放在 `releases/<版本>`，模型及寵物設定放在根目錄的 `runtime`，記憶放在 `data`。PowerShell、Node 與原生桌寵各使用集中式路徑解析器，直接讀取共享目錄，不再依賴目錄 junction。原始碼版仍使用專案內 `.daily-runtime`。
-
