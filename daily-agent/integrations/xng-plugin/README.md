@@ -1,5 +1,11 @@
 # XNG 獨立插件
 
+## 已有原版 SearXNG + Docker：一鍵接入
+
+從 [CF 公開下載站](https://xng-plugins.kentyang1993.workers.dev/) 下載 `XNG-Setup-1.exe` → 雙擊 →「一鍵下載並套用」。自動準備獨立 Node、下載校驗核心與來源規則、執行回歸並啟動本機 API。不用 CF 帳號或手動輸入指令。Docker / SearXNG 需先運行；[完整簡單教學](setup/README.md)。
+
+管理器可切換「核心插件／來源規則」，手動檢查並確認更新；個人來源覆寫保留。此配送快照沿用公開 Tools 2，增加自訂 API 連接埠的狀態查詢支援。CF 提供下載，搜尋由各使用者的電腦執行。
+
 這是獨立 XNG 的發佈工具副本，維護原始位置是 `XNG/plugins`。搜尋規則只維護一份 XNG 共用核心。Daily Agent 不擁有 XNG 的容器、快取、Node 或更新版本。
 
 ## 使用者
@@ -10,7 +16,7 @@
 
 Daily Agent 原始碼設定視窗的「模組管理器 → XNG 插件更新」是同一個獨立管理器入口。第一次找不到 XNG 會要求選擇已安裝的資料夾，選擇會保存。已發布的 Windows release 12 尚無此新按鈕，可直接開 XNG 管理器。
 
-本工具包不是首次安裝完整 XNG 的安裝器。需要獨立 Node 24+、Docker Desktop、原 SearXNG 8888 與 XNG 部署設定；插件核心 ZIP 已附 JS 相依套件，不附 AI 模型、Docker、瀏覽器執行檔或私密設定。
+單獨的 PluginTools ZIP 用於已安裝獨立 XNG 的使用者，不是首次安裝器。只有原版 SearXNG / Docker 時，改用上方一鍵套用 EXE 自動準備獨立 Node 和插件。核心 ZIP 已附 JS 相依套件，不附 AI 模型、Docker、瀏覽器執行檔或私密設定。
 
 ## Cloudflare 更新來源
 

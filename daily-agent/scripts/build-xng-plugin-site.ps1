@@ -32,9 +32,18 @@ if($PreviousSite){
   if($old.Name -notmatch '^XNG-(Core|PluginTools)-[0-9][A-Za-z0-9._-]{0,63}\.zip$' -or $old.Length -gt 25000000){throw 'Unexpected previous release asset'}
   Copy-Item -LiteralPath $old.FullName -Destination (Join-Path $site 'releases')
  }
+ foreach($old in Get-ChildItem -LiteralPath $previousReleases -File | Where-Object {$_.Extension -ne '.zip'}){
+  if($old.Name -notmatch '^XNG-(Rules|Setup)-[0-9][A-Za-z0-9._-]{0,63}\.(json|exe|exe.sha256)$' -or $old.Length -gt 500000){throw 'Unexpected previous public asset'}
+  Copy-Item -LiteralPath $old.FullName -Destination (Join-Path $site 'releases')
+ }
+ foreach($name in @('xng-rules-update.json','XNG-Rules-Guide.txt','XNG-OneClick-Guide.md')){
+  $source=Join-Path ([IO.Path]::GetFullPath($PreviousSite)) $name
+  if(Test-Path -LiteralPath $source){Copy-Item -LiteralPath $source -Destination $site}
+ }
 }
 foreach($file in @('Manage-XNGPlugin.ps1','Open-XNGPlugin.cmd','Start-XNG.ps1','Stop-XNG.ps1')){Copy-Item -LiteralPath (Join-Path $xng $file) -Destination $tools}
 foreach($file in @('PluginManager.mjs','Extract-Plugin.ps1','launch.mjs')){Copy-Item -LiteralPath (Join-Path $xng ('plugins\'+$file)) -Destination (Join-Path $tools 'plugins')}
+foreach($file in @('RulesManager.mjs','public-rules.json')){$source=Join-Path $xng ('plugins\'+$file);if(Test-Path -LiteralPath $source){Copy-Item -LiteralPath $source -Destination (Join-Path $tools 'plugins')}}
 Copy-Item -LiteralPath (Join-Path $xng 'plugins\tests') -Destination (Join-Path $tools 'plugins') -Recurse
 Copy-Item -LiteralPath (Join-Path $delivery 'README.md') -Destination $tools
 $coreName='XNG-Core-'+$Version+'.zip';$toolsName='XNG-PluginTools-'+$ToolsVersion+'.zip'
@@ -44,11 +53,15 @@ $toolsTarget=Join-Path $site ('releases\'+$toolsName)
 # Reuse an already published tools version. Change ToolsVersion when tools change.
 if(!(Test-Path -LiteralPath $toolsTarget)){[IO.Compression.ZipFile]::CreateFromDirectory($tools,$toolsTarget)}
 $html=[IO.File]::ReadAllText((Join-Path $delivery 'site\index.html')).Replace('2026.10.03-2058',$Version).Replace('XNG-PluginTools-1.zip',$toolsName)
+if($html.Contains('id="one-click"') -and !(Test-Path -LiteralPath (Join-Path $site 'releases\XNG-Setup-1.exe'))){throw 'Use PreviousSite containing the published one-click installer; do not publish broken links'}
+if($html.Contains('xng-rules-update.json') -and !(Test-Path -LiteralPath (Join-Path $site 'xng-rules-update.json'))){throw 'Use PreviousSite containing published rules assets'}
 $html=$html.Replace('核心約 4.7 MiB。',('核心約 '+[math]::Round($archive.Length/1MB,1)+' MiB。'))
 [IO.File]::WriteAllText((Join-Path $site 'index.html'),$html,[Text.UTF8Encoding]::new($false))
 Copy-Item -LiteralPath (Join-Path $delivery 'site\_headers') -Destination $site
+if($PreviousSite -and (Test-Path -LiteralPath (Join-Path $PreviousSite '_headers'))){Copy-Item -LiteralPath (Join-Path $PreviousSite '_headers') -Destination $site -Force}
 Copy-Item -LiteralPath (Join-Path $delivery 'README.md') -Destination (Join-Path $site 'XNG-Plugin-Guide.md')
 $feed=@{schema=1;id='xng-search-core';version=$Version;api_schema_version=1;paid=$false;size=$archive.Length;sha256=(Get-FileHash -LiteralPath $archive.FullName).Hash.ToLowerInvariant();url=('/releases/'+$coreName);notes='手動確認後更新；SHA256 與回歸通過才切換，失敗保留原版本。'}
 [IO.File]::WriteAllText((Join-Path $site 'xng-update.json'),($feed|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
-[IO.Compression.ZipFile]::CreateFromDirectory($site,(Join-Path $target 'XNG-Cloudflare-Site.zip'))
+. (Join-Path $PSScriptRoot 'Write-PortableZip.ps1')
+Write-PortableZip $site (Join-Path $target 'XNG-Cloudflare-Site.zip')
 Write-Output (Join-Path $target 'XNG-Cloudflare-Site.zip')

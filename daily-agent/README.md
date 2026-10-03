@@ -4,6 +4,8 @@
 
 [現版本介紹](docs/現版本介紹.md) · [更新紀錄](CHANGELOG.md) · [驗證範圍](VALIDATION.md) · [開發與發布](docs/開發與發布.md)
 
+**只要共用搜尋，不需要 Daily Agent？** 已有 Docker + SearXNG，可從 [XNG 下載站](https://xng-plugins.kentyang1993.workers.dev/) 取得獨立「一鍵套用工具」，自動下載 Node、核心與來源規則；[三步安裝與 API 教學](integrations/xng-plugin/setup/README.md)。
+
 本地模型驅動的桌寵助理，支援繁體中文對話、個人資料與記憶宮殿、行程、待辦，以及可選的文件、語音、生圖和 Android 連線。
 
 ## 安裝就能用

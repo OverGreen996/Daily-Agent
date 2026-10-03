@@ -54,7 +54,9 @@ export function selected(root){
 }
 export async function status(root){
  const choice=selected(root);let running=null;
- try {const r=await fetch('http://127.0.0.1:8889/health',{signal:AbortSignal.timeout(2000)});if(r.ok){const data=await r.json();if(data.service==='XNG AI Search Hub')running=data.plugin||{version:null,mode:'legacy-source'};}}catch{}
+ let port=8889,endpoint=null;
+ try{const connection=JSON.parse(fs.readFileSync(path.join(root,'.runtime/connection.json'),'utf8'));if(Number.isInteger(connection.port)&&connection.port>=1024&&connection.port<=65535){port=connection.port;endpoint=connection.searxng_url;}}catch{}
+ try {const r=await fetch('http://127.0.0.1:'+port+'/health',{signal:AbortSignal.timeout(2000)});if(r.ok){const data=await r.json();if(data.service==='XNG AI Search Hub'&&(!endpoint||data.endpoint===endpoint))running=data.plugin||{version:null,mode:'legacy-source'};}}catch{}
  return {id:'xng-search-core',...choice,running,requiresRestart:Boolean(running&&(running.version!==choice.version||running.mode!==choice.mode)),feed:feedSource(root),updatePolicy:'manual'};
 }
 function lock(root,action){

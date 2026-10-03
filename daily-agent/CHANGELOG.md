@@ -1,5 +1,12 @@
 # 更新紀錄
 
+## XNG 一鍵套用與來源規則｜2026-10-03
+
+- 新增獨立 Windows 一鍵套用工具，接上既有原版 SearXNG / Docker，自動下載獨立 Node、CF 核心及公開來源規則，校驗與回歸通過才啟動。
+- 官方本機 SearXNG 未開 JSON 時，備份設定並只調整 formats；現有核心、桌寵、Tunnel、DNS 及配對保留。
+- 配送 Tools 2 的來源規則管理器，核心／規則各自手動更新，個人覆寫保留；支援自訂本機 API 連接埠與重啟設定保存。
+- 此工具獨立於 Daily Agent Windows 安裝器，Windows release 12 / APK Preview 10 不重新打包。
+
 ## XNG 獨立插件｜2026-10-03
 
 - XNG `2026.10.03-2058` 公開插件包及獨立管理工具部署至 Cloudflare，提供跨程式共用的核心下載與版本索引。
