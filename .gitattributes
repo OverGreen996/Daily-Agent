@@ -1,0 +1,2 @@
+# XNG snapshot.json 記錄原始位元組的 SHA-256；clone 時不可轉換換行。
+daily-agent/xng-core/* -text
