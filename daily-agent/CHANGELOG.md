@@ -1,5 +1,16 @@
 # 更新紀錄
 
+[← 回首頁](../README.md) · [現版本介紹](docs/現版本介紹.md) · [快速開始](docs/快速開始.md)
+
+## 中文首頁與教學統整｜2026-10-04
+
+- 重整 Daily Agent GitHub 首頁：下載按鈕、版本徽章、功能介紹、設定截圖、APK QR、分工圖、教學索引與常見疑問。
+- 明確區分公開 Windows release 12、Android Preview 10、較新原始碼及獨立 XNG 工具。
+- 新增「快速開始」與 PocketDrop 安裝／手機加入 Room／Agent 配對的順序教學。
+- 統整 PowerShell、手機連線、選配下載、更新回復、記憶備份與皮膚製作入口，修正 Android 縮放範圍等過時文字。
+- XNG 通用工具維護導向獨立 XNG-Plugin 倉庫，不再引導於 Daily Agent 配送副本重複開發。
+- 同步 GitHub 中文倉庫描述與 Windows／Android 發行版說明；本次不重包 EXE／APK、不改發布版本或 CF 配置。
+
 ## XNG 一鍵套用與來源規則｜2026-10-03
 
 - 新增獨立 Windows 一鍵套用工具，接上既有原版 SearXNG / Docker，自動下載獨立 Node、CF 核心及公開來源規則，校驗與回歸通過才啟動。

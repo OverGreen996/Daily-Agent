@@ -1,10 +1,12 @@
 # Daily Agent 日常助理
 
-目前版本：**0.2.2 預覽版（2026-10-03）**，搭配 Android Preview 10。模組化重整、單檔安裝、動畫圖編輯器與新版 XNG 接口已整合進本次發布。
+**[完整 GitHub 首頁與下載](../README.md)** · **[第一次使用](docs/快速開始.md)** · **[中文操作手冊](deploy/使用教學.md)**
+
+公開安裝版：**0.2.2 預覽版 release 12（2026-10-03）**，搭配 Android Preview 10。模組化重整、單檔安裝、動畫圖編輯器與 XNG 接口已發布；預設分支另包含後續 XNG 插件管理入口。原始碼更新不代表安裝器已重包，詳見[版本界線](docs/現版本介紹.md)。
 
 [現版本介紹](docs/現版本介紹.md) · [更新紀錄](CHANGELOG.md) · [驗證範圍](VALIDATION.md) · [開發與發布](docs/開發與發布.md)
 
-**只要共用搜尋，不需要 Daily Agent？** 已有 Docker + SearXNG，可從 [XNG 下載站](https://xng-plugins.kentyang1993.workers.dev/) 取得獨立「一鍵套用工具」，自動下載 Node、核心與來源規則；[三步安裝與 API 教學](integrations/xng-plugin/setup/README.md)。
+**只需要共用搜尋？** 工具與最新版教學集中於 [XNG-Plugin 獨立倉庫](https://github.com/OverGreen996/XNG-Plugin)，已有 Docker + SearXNG 可使用其安裝器。接入 Daily Agent 的順序見[搜尋教學](deploy/XNG接入教學.md)。
 
 本地模型驅動的桌寵助理，支援繁體中文對話、個人資料與記憶宮殿、行程、待辦，以及可選的文件、語音、生圖和 Android 連線。
 
@@ -35,7 +37,7 @@
 - [寵物皮膚製作標準](deploy/寵物皮膚規格.md)
 - [GPT 整張動畫圖自動匯入、去背與連貫檢查](deploy/動畫圖匯入教學.md)
 - [維護架構、移除模組與插件／API 開發](ARCHITECTURE.md)
-- [PocketDrop 安裝與配對](deploy/使用教學.md#pocketdrop-區域網路串接)
+- [PocketDrop 安裝與配對](deploy/PocketDrop接入教學.md)
 
 Android 安裝 [DailyPet-Android.apk](https://github.com/OverGreen996/Daily-Agent/releases/download/android-preview-10/DailyPet-Android.apk)，依教學與自己的電腦配對。手機不下載模型，電腦需開著；外網使用自己的 Cloudflare 帳號，發布包不含作者的私人網域或權杖。
 
