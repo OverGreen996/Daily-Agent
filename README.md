@@ -146,6 +146,16 @@
 
 工具提供結構與品質檢查，角色動作仍需播放核對。生圖提示詞不寫入宮殿；生成圖片會保存在本機，使用者可自行清理。
 
+用 **GPT 的 PET／Pets 技能生成角色**，再以快速工具把素材導入安裝版桌寵：
+
+```text
+PET 生成 → 下載完整圖集／素材 ZIP → 預覽修正版 → 匯入安裝版 → 選新外觀
+```
+
+**[下載 PET 快速匯入工具](https://github.com/OverGreen996/Daily-Agent/releases/download/pet-import-v1.0.0-20261005/DailyAgent-PET-Import.zip)** · **[GPT PET 生成與匯入教學](daily-agent/desktop/PET-QUICK-IMPORT.md)**
+
+解壓後雙擊 `DailyAgent-PET-Import.exe`，不需編譯。原圖解析度與檔案位元組保留；可匯出安裝包分享。預設寫入 **已安裝 Daily Agent 的寵物素材庫**，保留其他寵物與記憶。
+
 **[寵物皮膚製作標準](daily-agent/deploy/寵物皮膚規格.md)** · **[整張動畫圖匯入教學](daily-agent/deploy/動畫圖匯入教學.md)** · [內建動畫圖集](daily-agent/desktop/assets/lumi/contact-sheet.png)
 
 ## 模組與串接

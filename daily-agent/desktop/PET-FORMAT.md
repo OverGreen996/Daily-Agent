@@ -13,6 +13,8 @@
 
 ## 動畫包
 
+如果素材由 PET 產生，可使用 [PET 快速匯入工具](PET-QUICK-IMPORT.md) 直接讀 outputs 資料夾／紀錄 ZIP／圖集，自動建立下列安裝包，並保留原始圖集。
+
 ```text
 my-pet.zip
 └─ my-pet/

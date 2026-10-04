@@ -8,7 +8,7 @@ if(Test-Path -LiteralPath $stage){throw 'Version already packaged'}
 $app=Join-Path $stage 'app'
 New-Item -ItemType Directory -Force $app | Out-Null
 $native=@(& (Join-Path $project 'daily-agent\desktop\Build-Pet.ps1'))[-1]
-foreach($name in @('Open-DailyPet.ps1','Start-DailyAgent.ps1','Stop-DailyAgent.ps1','Setup-DailyAgent.ps1','Setup-All-DailyAgent.ps1','Setup-All-DailyAgent.cmd','Select-DailyFeatures.ps1','Daily-SetupState.ps1','Open-DailyManager.ps1','Open-PetEditor.ps1','Setup-SpeechRecognition.ps1','Setup-Browser.ps1','Setup-LocalSearch.ps1','Setup-Kokoro.ps1','Setup-MobileBridge.ps1','Setup-ImageGeneration.ps1','Start-SearXNG.ps1','Configure-Search.ps1')){Copy-Item -LiteralPath (Join-Path $project $name) -Destination $app}
+foreach($name in @('Open-DailyPet.ps1','Start-DailyAgent.ps1','Stop-DailyAgent.ps1','Setup-DailyAgent.ps1','Setup-All-DailyAgent.ps1','Setup-All-DailyAgent.cmd','Select-DailyFeatures.ps1','Daily-SetupState.ps1','Open-DailyManager.ps1','Open-PetEditor.ps1','Open-PetImport.ps1','Open-PetImport.cmd','Setup-SpeechRecognition.ps1','Setup-Browser.ps1','Setup-LocalSearch.ps1','Setup-Kokoro.ps1','Setup-MobileBridge.ps1','Setup-ImageGeneration.ps1','Start-SearXNG.ps1','Configure-Search.ps1')){Copy-Item -LiteralPath (Join-Path $project $name) -Destination $app}
 $agent=Join-Path $app 'daily-agent';New-Item -ItemType Directory -Force $agent | Out-Null
 # Bundle a compatibility copy for portable Daily-Agent installations. The running
 # shared XNG service and its data live separately and are not owned by this installer.

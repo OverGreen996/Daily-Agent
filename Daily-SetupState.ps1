@@ -22,6 +22,28 @@ function Get-DailyRuntimePath([string]$Root){
  }
  return $runtime
 }
+function Get-DailyPetProjectRoot([string]$Root,[switch]$UseSourceLibrary,[switch]$RequireInstalled,[string]$InstallRoot=(Join-Path $env:LOCALAPPDATA 'DailyAgent')){
+ $project=[IO.Path]::GetFullPath($Root).TrimEnd('\')
+ if($UseSourceLibrary){return $project}
+ # A tool inside an installed release belongs to that installation, including custom locations.
+ if((Split-Path (Split-Path $project -Parent) -Leaf) -eq 'releases'){
+  $null=Get-DailyRuntimePath $project
+  return $project
+ }
+ $install=[IO.Path]::GetFullPath($InstallRoot).TrimEnd('\')
+ $pointer=Join-Path $install 'current.json'
+ if(!(Test-Path -LiteralPath $pointer)){
+  if($RequireInstalled){throw 'Please install Daily Agent first; no source-library fallback is allowed'}
+  return $project
+ }
+ $state=Get-Content -LiteralPath $pointer -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json
+ $version=[string]$state.current
+ if($version -notmatch '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,120}$' -or $state.dataFormat -ne 1){throw 'Invalid Daily Agent release pointer; repair the installation first'}
+ $candidate=Join-Path (Join-Path $install 'releases') $version
+ if(!(Test-Path -LiteralPath (Join-Path $candidate 'daily-agent\desktop\assets\lumi\pet.json'))){throw 'Installed Daily Agent release is missing; repair the installation first'}
+ $null=Get-DailyRuntimePath $candidate
+ return $candidate
+}
 function Test-DailyPlainPath([string]$Base,[string]$Relative){
  if([IO.Path]::IsPathRooted($Relative) -or ($Relative -split '[\\/]') -contains '..'){return $false}
  $current=[IO.Path]::GetFullPath($Base)

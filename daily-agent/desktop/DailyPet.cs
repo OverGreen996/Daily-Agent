@@ -730,6 +730,7 @@ namespace DailyPet {
       var builtin=new ToolStripMenuItem("內建露米") { Checked=appearance.Id=="lumi" };
       builtin.Click+=delegate { SelectAppearance("lumi"); }; appearanceMenu.DropDownItems.Add(builtin);
       appearanceMenu.DropDownItems.Add("匯入圖片或動畫包…",null,async delegate { await PickAppearance(); });
+      appearanceMenu.DropDownItems.Add("PET 素材快速匯入…",null,delegate { QuickImportAppearance(); });
       var pets=library.List();
       if(pets.Count>0) appearanceMenu.DropDownItems.Add(new ToolStripSeparator());
       foreach(var entry in pets) {
@@ -751,6 +752,14 @@ namespace DailyPet {
         if(editor.ShowDialog(this)==DialogResult.OK&&editor.Saved!=null){ApplyAppearance(editor.Saved);SavePetSettings();}
       }}catch(Exception e){MessageBox.Show(this,e.Message,"寵物外觀編輯器");}
       finally {importing=false;if(restore)bubble.Show(this);}
+    }
+    void QuickImportAppearance() {
+      if(importing||exiting)return;
+      importing=true;wander.Pause(Clock);bool restore=bubble.Visible;bubble.Hide();
+      try {using(var tool=new PetQuickImport(library,true)){
+        if(tool.ShowDialog(this)==DialogResult.OK&&tool.Saved!=null){ApplyAppearance(tool.Saved);SavePetSettings();}
+      }}catch(Exception e){MessageBox.Show(this,e.Message,"PET 素材快速匯入");}
+      finally {importing=false;if(restore)bubble.Show(this);RebuildAppearanceMenu();}
     }
     void ApplyAppearance(PetAppearance next) {
       var previous=appearance; appearance=next; petName=next.Name; phase=0;gesture="";wander.Pause(Clock);
@@ -1355,7 +1364,7 @@ namespace DailyPet {
         using(var frame=Frame()) frame.Save(Path.Combine(output,"imported-v2.png"),ImageFormat.Png);
         checks.Add("supplied-lumi-v2-webp-zip-import-and-render");
         RebuildAppearanceMenu();
-        if(appearanceMenu.DropDownItems.Count!=5) throw new Exception("Imported pets missing from menu");
+        if(appearanceMenu.DropDownItems.Count!=6) throw new Exception("Imported pets missing from menu");
         if(fullText!=originalText || conversation.Count!=messages) throw new Exception("ZIP import changed chat");
         checks.Add("library-menu-and-chat-preserved");
         SelectAppearance("lumi");
@@ -1496,6 +1505,16 @@ namespace DailyPet {
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
         Native.SetProcessDPIAware(); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         if(args.Length<2) throw new ArgumentException("Expected project root and localhost URL");
+        if(args.Length>4&&args[2]=="--pet-import-test"){
+          using(var test=new PetQuickImport(new PetLibrary(args[0],Path.Combine(args[3],"library")),false)){
+            test.Shown+=async delegate{await test.SelfTest(args[0],args[3],args[4]);};Application.Run(test);
+          }return 0;
+        }
+        if(args.Length>2&&args[2]=="--pet-quick-import"){
+          using(var tool=new PetQuickImport(new PetLibrary(args[0]),false)){
+            if(args.Length>3)tool.Shown+=async delegate{await tool.LoadSource(args[3]);};Application.Run(tool);
+          }return 0;
+        }
         if(args.Length>3&&args[2]=="--editor-test"){PetAppearanceEditor.SelfTest(args[0],args[3]);return 0;}
         if(args.Length>2&&args[2]=="--appearance-editor"){
           var library=new PetLibrary(args[0]);
