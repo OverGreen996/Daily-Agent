@@ -113,21 +113,16 @@
 
 ### 電腦負責思考，手機帶著走
 
-<table><tr>
-<td width="230" align="center" valign="middle">
-<a href="https://github.com/OverGreen996/Daily-Agent/releases/download/android-preview-10/DailyPet-Android.apk"><img src="daily-agent/deploy/android-download.png" width="164" alt="掃碼下載 Android Preview 10 APK"></a><br>
-<strong>掃碼下載 APK</strong><br><sub>Android 8+ · 約 2.7 MB</sub>
-</td>
-<td valign="top">
-<h3>下載 → 配對 → 開聊</h3>
-<ol>
-<li>先完成電腦安裝，再掃 QR 或下載 APK。</li>
-<li>依 Android 提示安裝、授予所需權限。</li>
-<li>電腦說「開啟手機配對」，手機填自己的連線網址及限時 8 位碼。</li>
-<li>輕點寵物開／收聊天，長按開設定；大小拉條可調 40%～200%。</li>
-</ol>
-</td>
-</tr></table>
+<div align="center">
+<a href="https://github.com/OverGreen996/Daily-Agent/releases/download/android-preview-10/DailyPet-Android.apk"><img src="daily-agent/deploy/android-download.png" width="164" alt="掃碼下載 Android Preview 10 APK"></a><br><strong>掃碼下載 APK</strong><br><sub>Android 8+ · 約 2.7 MB</sub>
+</div>
+
+**下載 → 配對 → 開聊**
+
+1. 先完成電腦安裝，再掃 QR 或下載 APK。
+2. 依 Android 提示安裝、授予所需權限。
+3. 電腦說「開啟手機配對」，手機填自己的連線網址及限時 8 位碼。
+4. 輕點寵物開／收聊天，長按開設定；大小拉條可調 40%～200%。
 
 手機不下載模型，聊天和生圖需連回開著的電腦與 Agent。APK 可直接從 GitHub 下載，下載時電腦不必開機。外網連線由**每位使用者設定自己的 Cloudflare 帳號與通道**。[手機配對與 Cloudflare →](daily-agent/deploy/使用教學.md#5-手機配對與-cloudflare)
 
