@@ -20,7 +20,10 @@
 </div>
 
 > [!TIP]
-> **第一次來，只下載 Windows EXE。** 雙擊 → 自動準備基本模型 → 開始聊天。手機 APK 獨立下載；搜尋、語音、生圖等需要時再補裝。
+> **第一次來，只下載 Windows EXE。** 雙擊 → 自動準備基本模型 → 開始聊天。手機 APK 獨立下載；語音、生圖等需要時再補裝，搜尋在設定內填入 API 金鑰。
+
+> [!NOTE]
+> **新版搜尋說明適用本機待發布版。** 2026-10-05 已完成本機重裝與驗證，搜尋改用 Exa／Tavily／Firecrawl API。GitHub 公開的 Windows release 12 與原始碼尚未同步這次程式改版；本次先更新文件，下載檔案仍以「版本與更新」列出的公開版本為準。
 
 ## 功能展示
 
@@ -42,7 +45,7 @@
 <tr>
 <td valign="top">
 <h3>03 / 搜尋與閱讀</h3>
-<p>XNG 帶回來源、日期與證據；文件模組處理摘要、比較與 OCR，資料不足時保留未核實狀態。</p>
+<p>新版先由 Qwen 分析聊天與搜尋問題，再按需要呼叫搜尋 API。公開網頁與文件可用來摘要、比較及核對來源；資料不足時清楚說明。</p>
 <blockquote>「幫我搜尋最新 AI 新聞，附上來源。」</blockquote>
 </td>
 <td valign="top">
@@ -100,14 +103,14 @@
 
 | 想做的事 | 選配／設定 |
 | --- | --- |
+| 新版網路搜尋 | 設定自己的 Exa、Tavily 或 Firecrawl 金鑰，選擇順位及用量上限 |
 | 聽它說話、用語音輸入 | 語音朗讀、中文辨識模型，再選音訊裝置 |
 | 在本地生圖 | 動漫／真人模式分開勾選；需相容 NVIDIA 驅動與足夠顯存 |
 | 閱讀掃描文件 | 文件模組及 Windows OCR 語言 |
-| 即時搜尋 | 自己的 Docker／SearXNG + 獨立 XNG Hub，或配置搜尋備援 |
 | 外網手機連線 | 自己的 cloudflared／Cloudflare 通道與網址 |
 | 備份記憶 | 自己的 Google Desktop OAuth 用戶端與 Drive 帳號 |
 
-**基本電腦聊天不依賴 Docker、Cloudflare 或網域。** 不是預設下載所有模型，也不需要把全選功能的空間當成基本版需求。
+**基本聊天在自己的電腦運行，不必設定外網連線。** 模型按勾選功能準備，磁碟空間以安裝畫面的估算為準。
 
 ## 手機桌寵
 
@@ -174,9 +177,9 @@ PET 生成 → 下載完整圖集／素材 ZIP → 預覽修正版 → 匯入安
 
 | 模組 | 功能 |
 | --- | --- |
+| `search` | 搜尋 API 與公開網頁讀取；未配置時提示尚未設定 |
 | `assistant` | 行程、待辦、筆記、習慣與行事曆 |
 | `companion` | 桌寵陪伴 |
-| `search` | XNG 結構化證據與搜尋備援 |
 | `documents` | 匯入、摘要、比較與 OCR |
 | `environment` | 環境資訊 |
 | `images` | 本地生圖 |
@@ -190,26 +193,25 @@ PET 生成 → 下載完整圖集／素材 ZIP → 預覽修正版 → 匯入安
 
 </details>
 
-### 三個外部工具，各自設定
+### 外部工具，各自設定
 
 | 工具 | 在 Daily Agent 的用途 | 接入順序 |
 | --- | --- | --- |
-| **[XNG-Plugin](https://github.com/OverGreen996/XNG-Plugin)** | 取得可追溯的搜尋證據 | 自己的 SearXNG → XNG → [Agent 接入](daily-agent/deploy/XNG接入教學.md) |
+| **Exa／Tavily／Firecrawl** | 新版網路搜尋與備援輪替 | 自己的 API 金鑰 → 設定順位與上限 → [搜尋設定教學](daily-agent/deploy/搜尋API與輪替教學.md) |
 | **[PocketDrop](https://github.com/OverGreen996/PocketDrop)** | 「幫我傳到手機」分享文字 | 安裝 Room → 手機加入 → [Agent 配對](daily-agent/deploy/PocketDrop接入教學.md) |
 | **Google Drive** | 備份自己的記憶宮殿 | 自己的 OAuth 設定 → 登入授權 → [備份與校驗](daily-agent/deploy/GoogleDrive備份教學.md) |
 
-XNG 核心與規則獨立更新，CF 站只配送檔案，搜尋在自己的主機。已發布 Windows release 12 使用獨立 `Open-XNGPlugin.cmd`；較新原始碼有模組管理器入口。PocketDrop 分享會取代 Room 的共享文字，其他已配對裝置也看得到。
 
 ## 版本與更新
 
-2026-10-04 核對的公開版本：
+2026-10-05 核對的版本與發布狀態：
 
 | 項目 | 目前版本 | 下載／說明 |
 | --- | --- | --- |
 | Windows 安裝包 | **0.2.2 · release 12** | [發布頁](https://github.com/OverGreen996/Daily-Agent/releases/tag/v0.2.2-release-20261003-12) · [校驗值](https://github.com/OverGreen996/Daily-Agent/releases/latest/download/SHA256SUMS.txt) |
 | Android 桌寵 | **0.1.0-preview.10 · versionCode 10** | [APK 發布頁](https://github.com/OverGreen996/Daily-Agent/releases/tag/android-preview-10) |
-| 最新原始碼 | **`codex/initial-release`** | 含發行後改動；[與安裝版的區別](daily-agent/docs/現版本介紹.md) |
-| 選配 XNG | 核心 **2026.10.03-2058**／規則 **2026.10.03-1** | [獨立工具](https://github.com/OverGreen996/XNG-Plugin) |
+| 本機待發布版 | **0.2.2 · search-independent local 5** | 已重新安裝並核驗；尚未上傳公開安裝包或對應程式碼 |
+| 公開原始碼 | **`codex/initial-release`** | 含發行後改動；本機待發布版另待同步 |
 
 **一般使用者下載 EXE，開發者才選原始碼。** GitHub Source code ZIP 不是可安裝版本；文件與原始碼更新不會自動替換公開 EXE／APK。[更新紀錄 →](daily-agent/CHANGELOG.md)
 
@@ -240,8 +242,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\DailyAgen
 
 | 開始與日常使用 | 擴充與維護 |
 | --- | --- |
+| [完整安裝、依賴與 PowerShell](daily-agent/deploy/使用教學.md) | [新版搜尋 API 與順位輪替](daily-agent/deploy/搜尋API與輪替教學.md) |
 | [第一次使用：電腦與手機](daily-agent/docs/快速開始.md) | [現版本功能與驗收範圍](daily-agent/docs/現版本介紹.md) |
-| [完整安裝、依賴與 PowerShell](daily-agent/deploy/使用教學.md) | [XNG 搜尋與 API 接入](daily-agent/deploy/XNG接入教學.md) |
 | [對話指令與使用範例](daily-agent/deploy/對話指令.md) | [PocketDrop 安裝與 Room 配對](daily-agent/deploy/PocketDrop接入教學.md) |
 | [Google OAuth 與 Drive 備份](daily-agent/deploy/GoogleDrive備份教學.md) | [API、插件與模組架構](daily-agent/ARCHITECTURE.md) |
 | [皮膚規格](daily-agent/deploy/寵物皮膚規格.md) · [動畫圖編輯](daily-agent/deploy/動畫圖匯入教學.md) | [原始碼、測試與發布](daily-agent/docs/開發與發布.md) |
@@ -257,17 +259,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\DailyAgen
 </details>
 
 <details>
-<summary><strong>手機可以單獨聊天或生圖嗎？Docker 要一直開著嗎？</strong></summary>
+<summary><strong>手機可以單獨聊天或生圖嗎？電腦需要開著嗎？</strong></summary>
 
-模型在電腦，手機要連回開著的後端。Docker／SearXNG 只在使用該搜尋功能時需要運行，基本聊天、記憶與行程不依賴它。
-
+模型在自己的電腦，手機需要連回正在運行的 Daily Agent。電腦關機時，手機不能使用它的本地聊天或生圖模型。
 </details>
 
 <details>
 <summary><strong>Cloudflare 要共用作者的設定嗎？一定要買網域嗎？</strong></summary>
 
-各自設定帳號與通道。手機連線可先用 Quick Tunnel 測試，固定網址使用自己的網域；只有本機電腦聊天不必配置。XNG 的 CF 下載站是另一件事，不是遠端搜尋服務。
-
+每位使用者自行設定帳號與通道；同 Wi-Fi 先依手機配對教學連線，外網可用 Quick Tunnel 測試，固定網址再設定自己的網域。本機聊天不必配置 Cloudflare。
 </details>
 
 <details>
@@ -295,7 +295,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Open-DailyManager.ps1
 
 ### 預覽版的驗證範圍
 
-Windows x64；既有驗收以 RTX 3080 Ti 12 GB 配置進行。2026-10-04 原始碼回歸 **283/283 通過**，這次重新設計 README 與視覺素材，沒有重包安裝版。
+Windows x64，RTX 3080 Ti 12 GB。2026-10-05 本機待發布版逐項測試 **269/269 通過**，完成安裝包解出檔案校驗、重新安裝、離線功能及搜尋設定與重啟測試；Qwen 本機推理實測成功。搜尋輪替使用模擬 API 驗證，尚未驗證真實帳戶的額度與回覆品質。
 
 Windows 安裝器尚未簽章；Android 實機觸控、權限、背景耗電，以及真實 Google 帳號備份與 PocketDrop Room 尚待完整驗收。[已測項目與界線 →](daily-agent/VALIDATION.md)
 
