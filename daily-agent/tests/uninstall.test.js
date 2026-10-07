@@ -14,7 +14,7 @@ test('uninstall keeps only opted-in memory, removes models and never follows ext
   for(const keep of [true,false]){
    const root=path.join(temp,keep?'keep':'remove');fs.mkdirSync(path.join(root,'data'),{recursive:true});fs.mkdirSync(path.join(root,'runtime'));
    fs.writeFileSync(path.join(root,'.daily-install.json'),JSON.stringify({kind:'DailyAgentInstallation',root}));
-   fs.writeFileSync(path.join(root,'data/palace.sqlite'),'memory');fs.writeFileSync(path.join(root,'data/palace.sqlite-wal'),'wal');fs.writeFileSync(path.join(root,'data/pocketdrop.dpapi'),'credential');
+   fs.writeFileSync(path.join(root,'data/palace.sqlite'),'memory');fs.writeFileSync(path.join(root,'data/palace.sqlite-wal'),'wal');fs.writeFileSync(path.join(root,'data/device-credentials.dpapi'),'credential');
    fs.writeFileSync(path.join(root,'runtime/model.bin'),'model');fs.symlinkSync(outside,path.join(root,'external'),'junction');
    const result=run(root,keep);assert.equal(result.status,0,result.stderr);
    assert.equal(fs.readFileSync(path.join(outside,'safe.txt'),'utf8'),'must survive');

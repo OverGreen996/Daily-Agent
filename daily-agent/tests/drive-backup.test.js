@@ -1,4 +1,10 @@
 import test from 'node:test';
+import http from 'node:http';
+// Each ephemeral callback fixture owns a fresh connection and consumes its body.
+// Never reuse the process-wide fetch pool across servers that close after one callback.
+const callbackRequest = url => new Promise((resolve,reject) => {
+ const req=http.get(url,{agent:false},res=>{const chunks=[];res.on('data',c=>chunks.push(c));res.on('error',reject);res.on('end',()=>resolve(new Response(Buffer.concat(chunks),{status:res.statusCode})));});req.on('error',reject);
+});
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -66,9 +72,9 @@ test('OAuth loopback checks state and PKCE, persists encrypted-session inputs an
   assert.equal(auth.searchParams.get('scope'),'openid email '+scope);
   await assert.rejects(drive.login(),/進行中/);
   const callback=new URL(auth.searchParams.get('redirect_uri'));assert.equal(callback.hostname,'127.0.0.1');
-  callback.search=new URLSearchParams({state:'bad',code:'test-code'});assert.equal((await fetch(callback)).status,403);assert.equal(drive.status().login_pending,true);
-  callback.search=new URLSearchParams({state:'é'.repeat(auth.searchParams.get('state').length),code:'test-code'});assert.equal((await fetch(callback)).status,403);
-  callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'test-code'});const completed=await fetch(callback);assert.equal(completed.status,200);assert.match(await completed.text(),/登入完成/);
+  callback.search=new URLSearchParams({state:'bad',code:'test-code'});assert.equal((await callbackRequest(callback)).status,403);assert.equal(drive.status().login_pending,true);
+  callback.search=new URLSearchParams({state:'é'.repeat(auth.searchParams.get('state').length),code:'test-code'});assert.equal((await callbackRequest(callback)).status,403);
+  callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'test-code'});const completed=await callbackRequest(callback);assert.equal(completed.status,200);assert.match(await completed.text(),/登入完成/);
   assert.equal(createHash('sha256').update(exchange.get('code_verifier')).digest('base64url'),auth.searchParams.get('code_challenge'));
   assert.equal(exchange.get('redirect_uri'),auth.searchParams.get('redirect_uri'));assert.equal(drive.status().connected,true);
   assert.equal(vault.load().refresh_token,'refresh-test');assert.equal(drive.controllers.size,0);
@@ -79,7 +85,7 @@ test('denied backup scope is not treated as successful login',async()=>{
  try {
   const {url}=await drive.login(),auth=new URL(url),callback=new URL(auth.searchParams.get('redirect_uri'));
   callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'test-code'});
-  assert.equal((await fetch(callback)).status,400);assert.equal(drive.status().connected,false);assert.match(drive.status().error,/備份權限/);
+  assert.equal((await callbackRequest(callback)).status,400);assert.equal(drive.status().connected,false);assert.match(drive.status().error,/備份權限/);
  } finally {drive.close();fs.rmSync(dir,{recursive:true,force:true});}
 });
 test('resumable upload stays in appDataFolder, uses a validated snapshot and can download the checked backup without replacing live memory',async()=>{

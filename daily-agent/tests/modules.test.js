@@ -214,11 +214,6 @@ for (const definition of moduleCatalog)
         );
       if (definition.id === "assistant")
         assert.equal(agent.memory.personal, null);
-      if (definition.id === "pocketdrop")
-        await assert.rejects(
-          agent.modules.route("GET", "/api/modules/pocketdrop"),
-          /停用/,
-        );
       if (definition.id === "documents")
         await assert.rejects(agent.chat("查看文件庫"), /停用/);
       await agent.tick();

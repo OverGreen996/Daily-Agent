@@ -42,12 +42,6 @@
     "description": "APK 配對、手機位置、共享資料夾及 Cloudflare；使用自己的帳號。"
   },
   {
-    "id": "pocketdrop",
-    "name": "PocketDrop 傳送",
-    "requires": [],
-    "description": "Room 配對與文字傳送；和手機連線模組可分開停用。"
-  },
-  {
     "id": "voice",
     "name": "語音輸入與回覆",
     "requires": [],

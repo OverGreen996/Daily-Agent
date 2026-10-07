@@ -4,7 +4,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [Windows.Forms.Application]::EnableVisualStyles()
 $items=@(
- @{id='core';label='基本功能（必要）：桌寵、聊天、記憶、行程、PocketDrop'},
+ @{id='core';label='基本功能（必要）：桌寵、聊天、記憶、行程'},
  @{id='tts';label='語音朗讀：下載 Kokoro，讓桌寵開口說話'},
  @{id='stt';label='語音輸入：下載中文語音辨識模型'},
  @{id='browser';label='瀏覽器工具：開啟及操作網頁'},
@@ -24,7 +24,7 @@ $list.SetBounds(20,72,640,220);$list.CheckOnClick=$true
 foreach($item in $items){$null=$list.Items.Add($item.label,($selected -contains $item.id))}
 $list.add_ItemCheck({param($sender,$eventArgs)if($eventArgs.Index -eq 0){$eventArgs.NewValue=[Windows.Forms.CheckState]::Checked}})
 $note=New-Object Windows.Forms.Label
-$note.SetBounds(20,305,640,65);$note.Text="生圖目前以 NVIDIA 12 GB 顯存為基準。兩種生圖共用環境，僅下載各自選中的模型。`n搜尋請在模組管理器的「搜尋 API 與輪替」設定自己的金鑰。`n手機在同一 Wi-Fi 配對及 PocketDrop 不需要額外下載 Cloudflare。"
+$note.SetBounds(20,305,640,65);$note.Text="生圖目前以 NVIDIA 12 GB 顯存為基準。兩種生圖共用環境，僅下載各自選中的模型。`n搜尋請在模組管理器的「搜尋 API 與輪替」設定自己的金鑰。`n手機在同一 Wi-Fi 配對不需要額外下載 Cloudflare。"
 $ok=New-Object Windows.Forms.Button
 $ok.SetBounds(420,380,240,36);$ok.Text='下載並配置勾選的功能';$ok.DialogResult='OK'
 $cancel=New-Object Windows.Forms.Button

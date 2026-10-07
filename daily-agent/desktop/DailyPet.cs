@@ -38,7 +38,6 @@ namespace DailyPet {
     readonly CancellationTokenSource stop = new CancellationTokenSource();
     readonly string url; string token;
     public bool Listening { get; private set; }
-    public void OpenPocketDrop(){System.Diagnostics.Process.Start(url+"/pocketdrop");}
     public void OpenPalace(){System.Diagnostics.Process.Start(url+"/palace");}
     public Api(string baseUrl) {
       Uri parsed = new Uri(baseUrl);
@@ -1054,7 +1053,6 @@ namespace DailyPet {
       if(command=="傳送外觀到手機" || command=="把寵物傳到手機"){await TransferAppearance();return;}
       if(command=="儲存剛才的圖片"||command=="儲存剛剛的圖片"||command=="另存剛才的圖片"||command=="保存剛才的圖片"){SaveGeneratedImage();return;}
       if(command=="設定" || command=="功能與設定" || command=="模組管理器" || command=="打開設定"){OpenFeatureManager();return;}
-      if(command=="連接PocketDrop" || command=="連接 PocketDrop" || command=="PocketDrop設定" || command=="PocketDrop 設定"){api.OpenPocketDrop();ShowText("PocketDrop 配對頁已打開，請選取邀請 QR 圖片。");return;}
       if(command=="打開記憶宮殿" || command=="開啟記憶宮殿" || command=="打開記憶書架" || command=="開啟記憶書架"){api.OpenPalace();ShowText("記憶宮殿已打開，可以搜尋主題和閱讀原始對話。");return;}
       if(command=="開啟通知提醒"){try{await notifications.Start();ShowText("通知提醒已開啟，只提示來源程式，不讀取通知內文。");}catch(Exception e){ShowText("通知提醒尚未啟用："+e.Message+"\n若 Windows 要求套件身分，請先依 desktop/notification-package/README.md 安裝通知身分套件。");}return;}
       if(command=="關閉通知提醒"){notifications.Stop();try{await api.Call("notification",new {clear=true});}catch{}ShowText("通知提醒已關閉。");return;}

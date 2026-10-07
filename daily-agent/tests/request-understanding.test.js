@@ -47,14 +47,12 @@ test('search is driven by understanding even without a latest/search keyword; or
   assert.ok(order.indexOf('analyse')<order.indexOf('search'));assert.ok(order.indexOf('search')<order.indexOf('answer'));
 });
 
-test('URL reading is analysed, while an explicit feature command keeps its original dispatch',async()=>{
+test('URL reading is analysed before the reader is dispatched',async()=>{
   let analyses=0;
   const {agent,calls}=fixture(async(_m,options)=>{
     if(options.format){analyses++;return response(plan());}return {message:{content:'已讀取'}};
   });
   await agent.chat('https://example.org/report');assert.equal(analyses,1);assert.equal(calls[0].tool,'web_read');
-  agent.pocketdrop={async command(text){assert.equal(analyses,1);assert.equal(text,'幫我傳到手機');return '已交給手機';}};
-  assert.equal((await agent.chat('幫我傳到手機')).content,'已交給手機');assert.equal(calls.length,1);
 });
 
 test('malformed plan and timeout stop normal chat; no fallback bypass; later requests still work',async()=>{

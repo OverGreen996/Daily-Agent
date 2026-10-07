@@ -79,10 +79,9 @@ $spaceHint=Label-On $features '' 8 312 584 22
 $download=Button-On $features '下載勾選的功能' 4 343 596;$download.Primary=$true
 $null=Label-On $features '勾選才會下載；已安裝項目會沿用。下載中斷，重新開啟此視窗即可繼續。' 8 390 584 36
 $null=Title-On $help '手機與資料' 8 4
-$pair=Button-On $help '手機配對' 4 42 190
-$pocket=Button-On $help 'PocketDrop 配對' 207 42 190
-$palace=Button-On $help '記憶宮殿' 410 42 190
-$connection=Label-On $help "手機需要電腦開著，外網連線使用自己的 Cloudflare 帳號。`nPocketDrop 需先與自己的 Room 配對。" 8 90 584 50
+$pair=Button-On $help '手機配對' 4 42 292
+$palace=Button-On $help '記憶宮殿' 309 42 292
+$connection=Label-On $help "手機需要電腦開著，外網連線使用自己的 Cloudflare 帳號。" 8 90 584 50
 $driveBackup=Button-On $help 'Google Drive 備份' 4 145 292
 $petEditor=Button-On $help '寵物外觀編輯器' 309 145 292
 $null=Title-On $help '維護與協助' 8 235
@@ -232,7 +231,6 @@ $more.add_Click({$tabs.SelectedTab=$features})
 $refresh.add_Click({Refresh-Readiness})
 $clean.add_Click({try{$removed=Clear-DailyArchives $root;Refresh-Readiness;$footer.Text='已釋放 '+[math]::Round($removed/1GB,2)+' GB 安裝暫存。'}catch{[Windows.Forms.MessageBox]::Show($_.Exception.Message,'暫存清理') | Out-Null}})
 $pair.add_Click({try{$connection.Text=(Invoke-LocalAction '開啟手機配對').content}catch{$connection.Text=$_.Exception.Message}})
-$pocket.add_Click({try{$base=Invoke-LocalAction '';Start-Process ($base+'/pocketdrop')}catch{$connection.Text=$_.Exception.Message}})
 $palace.add_Click({try{$base=Invoke-LocalAction '';Start-Process ($base+'/palace')}catch{$connection.Text=$_.Exception.Message}})
 $driveBackup.add_Click({try{$base=Invoke-LocalAction '';Start-Process ($base+'/palace#drive-backup')}catch{$connection.Text=$_.Exception.Message}})
 $petEditor.add_Click({try{$null=Start-BackgroundScript 'Open-PetEditor.ps1'}catch{$connection.Text=$_.Exception.Message}})

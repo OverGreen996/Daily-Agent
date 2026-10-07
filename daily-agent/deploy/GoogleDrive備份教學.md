@@ -33,7 +33,7 @@ Google Cloud 是這次 Google 登入的設定平台，與 Cloudflare 外網連�
 
 `appDataFolder` 是此程式專用的隱藏資料空間，一般 Drive 檔案列表看不到；備份清單與下載由 Daily Agent 顯示。它不能用來讀其他私人檔案。[Drive 應用程式資料說明](https://developers.google.com/workspace/drive/api/guides/appdata)
 
-備份範圍是 `palace.sqlite` 的一致性快照，以及使用中的行事曆資料；個人資料、行程、待辦都在宮殿資料庫內。圖片、模型、Cloudflare／PocketDrop／Google 登入憑證不包含在備份。生圖提示詞不寫入記憶宮殿，因此也不應進入這個備份。
+備份範圍是 `palace.sqlite` 的一致性快照，以及使用中的行事曆資料；個人資料、行程、待辦都在宮殿資料庫內。圖片、模型、Cloudflare／Google 登入憑證不包含在備份。生圖提示詞不寫入記憶宮殿，因此也不應進入這個備份。
 
 ## 測試版與正式開放
 

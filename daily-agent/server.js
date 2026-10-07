@@ -38,7 +38,7 @@ const server = http.createServer(async (req, res) => {
         return send(401, { error: "Token required" });
       if (closing) return send(503, { error: "正在保存記憶並停止服務，請稍候。" });
       if(url.pathname==='/api/modules'&&req.method==='GET')return send(200,{modules:agent.modules.status()});
-      const alias=url.pathname.replace(/^\/api\/pocketdrop(?=\/|$)/,'/api/modules/pocketdrop').replace(/^\/api\/mobile\/appearance$/,'/api/modules/mobile/appearance');
+      const alias=url.pathname.replace(/^\/api\/mobile\/appearance$/,'/api/modules/mobile/appearance');
       if(req.method==='GET'){
         const route=await agent.modules.route('GET',alias,null,{query:url.searchParams});
         if(route)return send(route.code,route.data);
@@ -201,7 +201,6 @@ const server = http.createServer(async (req, res) => {
       const data=await fs.readFile(path.join(root,'desktop','assets','lumi','spritesheet.webp'));
       res.writeHead(200,{'Content-Type':'image/webp','Cache-Control':'public, max-age=3600'});res.end(data);return;
     }
-    if(url.pathname==='/jsqr.js'){res.writeHead(200,{'Content-Type':'text/javascript','Cache-Control':'no-store'});res.end(await fs.readFile(path.join(root,'node_modules/jsqr/dist/jsQR.js')));return;}
     if(url.pathname==='/drive-guide'){
       res.writeHead(200,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'"});
       res.end(await fs.readFile(path.join(root,'deploy','GoogleDrive備份教學.md'),'utf8'));return;
@@ -211,8 +210,6 @@ const server = http.createServer(async (req, res) => {
       '/search-settings':'search-settings.html',
       '/search-settings.js':'search-settings.js',
       '/search-settings.css':'search-settings.css',
-      "/pocketdrop":"pocketdrop.html",
-      "/pocketdrop.js":"pocketdrop.js",
       "/app.js": "app.js",
       "/style.css": "style.css",
       '/palace':'palace.html',
@@ -225,7 +222,7 @@ const server = http.createServer(async (req, res) => {
       path.join(root, "ui", files[url.pathname]),
       "utf8",
     );
-    if (url.pathname === "/" || url.pathname==='/palace' || url.pathname==='/pocketdrop' || url.pathname==='/search-settings') content = content.replace("__TOKEN__", secret);
+    if (url.pathname === "/" || url.pathname==='/palace' || url.pathname==='/search-settings') content = content.replace("__TOKEN__", secret);
     res.writeHead(200, {
       "Content-Type": url.pathname.endsWith(".js")
         ? "text/javascript"

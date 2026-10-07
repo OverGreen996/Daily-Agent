@@ -111,6 +111,10 @@ test("plugin API uses central authentication, disabled mobile returns 503, setti
     assert.equal(saved.plugins[0].id, "example");
     assert.equal(saved.enabled.documents, false);
     assert.equal((await request("/api/modules")).status, 200);
+    const retired = "pocket" + "drop";
+    assert.equal((await request("/api/" + retired)).status, 404);
+    assert.equal((await request("/api/modules/" + retired)).status, 503);
+    assert.ok(!(await (await request("/api/modules")).json()).modules.some(m => m.id === retired));
     assert.equal((await request("/api/shutdown", {})).status, 200);
     await Promise.race([
       new Promise((resolve) => child.once("exit", resolve)),

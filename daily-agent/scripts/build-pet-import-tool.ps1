@@ -1,4 +1,4 @@
-param([string]$Version='1.0.2-20261007',[string]$OutputDirectory)
+﻿param([string]$Version='1.0.2-20261007',[string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 if($Version -notmatch '^[a-zA-Z0-9][a-zA-Z0-9._-]{0,100}$'){throw 'Invalid tool version'}
 $project=Split-Path (Split-Path $PSScriptRoot -Parent) -Parent

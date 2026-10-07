@@ -1,6 +1,6 @@
 <picture>
   <source media="(max-width: 700px)" srcset="daily-agent/docs/images/readme-hero-mobile.jpg">
-  <img src="daily-agent/docs/images/readme-hero.jpg" alt="Daily Agent：住在桌面，也記得你的日常。本地模型、11 個功能模組、Windows 與 Android。封面對話為示意。" width="1200">
+  <img src="daily-agent/docs/images/readme-hero.jpg" alt="Daily Agent：住在桌面，也記得你的日常。本地模型、10 個功能模組、Windows 與 Android。封面對話為示意。" width="1200">
 </picture>
 
 <div align="center">
@@ -57,8 +57,8 @@
 <tr>
 <td valign="top">
 <h3>05 / 電腦與手機</h3>
-<p>電腦桌寵處理對話，Android 桌寵連回自己的後端。PocketDrop 可分享近期文字回答。</p>
-<blockquote>「幫我傳到手機。」</blockquote>
+<p>電腦桌寵處理對話，Android 桌寵連回自己的後端。</p>
+<blockquote>「開啟手機配對」→ 手機掃碼連線。</blockquote>
 </td>
 <td valign="top">
 <h3>06 / 自己的外觀</h3>
@@ -72,7 +72,7 @@
 
 ### 功能集中，設定分區
 
-![Daily Agent 實際深色設定視窗：手機配對、PocketDrop、Google Drive、外觀編輯器與維護入口](daily-agent/docs/images/settings.png)
+![Daily Agent 實際深色設定視窗：手機配對、Google Drive、外觀編輯器與維護入口](daily-agent/docs/images/settings.png)
 
 <div align="center"><sub>實際設定畫面 ·「開始使用」「補裝功能」「模組管理器」「連線與維護」四個入口</sub></div>
 
@@ -130,7 +130,7 @@
 手機不下載模型，聊天和生圖需連回開著的電腦與 Agent。APK 可直接從 GitHub 下載，下載時電腦不必開機。外網連線由**每位使用者設定自己的 Cloudflare 帳號與通道**。[手機配對與 Cloudflare →](daily-agent/deploy/使用教學.md#5-手機配對與-cloudflare)
 
 > [!IMPORTANT]
-> **Preview 9 以前先移除，再安裝 Preview 10 並重新配對。** 舊手機設定會清除，電腦宮殿保留；Preview 10 之後沿用固定新簽章更新。PocketDrop 是另一個 APK 和配對流程，不能代替桌寵配對。
+> **Preview 9 以前先移除，再安裝 Preview 10 並重新配對。** 舊手機設定會清除，電腦宮殿保留；Preview 10 之後沿用固定新簽章更新。
 
 ## 外觀創作
 
@@ -167,13 +167,13 @@ PET 生成 → 下載完整圖集／素材 ZIP → 預覽修正版 → 匯入安
 
 <picture>
   <source media="(max-width: 700px)" srcset="daily-agent/docs/images/readme-modules-mobile.svg">
-  <img src="daily-agent/docs/images/readme-modules.svg" alt="Daily Agent 功能地圖：日常陪伴、搜尋知識、生圖外觀、手機分享、語音與記憶備份" width="1200">
+  <img src="daily-agent/docs/images/readme-modules.svg" alt="Daily Agent 功能地圖：日常陪伴、搜尋知識、生圖外觀、手機連線、語音與記憶備份" width="1200">
 </picture>
 
 聊天與記憶是主線，額外功能透過相同模組接口提供入口、工具、API 與資源清理。程式版本、共享模型和個人資料分開存放；更新保留設定，卸載可選保留宮殿。[插件接口與維護架構 →](daily-agent/ARCHITECTURE.md)
 
 <details>
-<summary><strong>查看 11 個模組與用途</strong></summary>
+<summary><strong>查看 10 個模組與用途</strong></summary>
 
 | 模組 | 功能 |
 | --- | --- |
@@ -185,7 +185,6 @@ PET 生成 → 下載完整圖集／素材 ZIP → 預覽修正版 → 匯入安
 | `images` | 本地生圖 |
 | `appearance` | 外觀匯入及動畫圖編輯 |
 | `mobile` | Android 配對與手機 API |
-| `pocketdrop` | 同一 Room 的共享文字與檔案清單 |
 | `voice` | 朗讀、辨識及音訊設定 |
 | `backup` | Drive 宮殿快照與下載校驗 |
 
@@ -198,7 +197,6 @@ PET 生成 → 下載完整圖集／素材 ZIP → 預覽修正版 → 匯入安
 | 工具 | 在 Daily Agent 的用途 | 接入順序 |
 | --- | --- | --- |
 | **Exa／Tavily／Firecrawl** | 新版網路搜尋與備援輪替 | 自己的 API 金鑰 → 設定順位與上限 → [搜尋設定教學](daily-agent/deploy/搜尋API與輪替教學.md) |
-| **[PocketDrop](https://github.com/OverGreen996/PocketDrop)** | 「幫我傳到手機」分享文字 | 安裝 Room → 手機加入 → [Agent 配對](daily-agent/deploy/PocketDrop接入教學.md) |
 | **Google Drive** | 備份自己的記憶宮殿 | 自己的 OAuth 設定 → 登入授權 → [備份與校驗](daily-agent/deploy/GoogleDrive備份教學.md) |
 
 
@@ -243,7 +241,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "$env:LOCALAPPDATA\DailyAgen
 | --- | --- |
 | [完整安裝、依賴與 PowerShell](daily-agent/deploy/使用教學.md) | [新版搜尋 API 與順位輪替](daily-agent/deploy/搜尋API與輪替教學.md) |
 | [第一次使用：電腦與手機](daily-agent/docs/快速開始.md) | [現版本功能與驗收範圍](daily-agent/docs/現版本介紹.md) |
-| [對話指令與使用範例](daily-agent/deploy/對話指令.md) | [PocketDrop 安裝與 Room 配對](daily-agent/deploy/PocketDrop接入教學.md) |
 | [Google OAuth 與 Drive 備份](daily-agent/deploy/GoogleDrive備份教學.md) | [API、插件與模組架構](daily-agent/ARCHITECTURE.md) |
 | [皮膚規格](daily-agent/deploy/寵物皮膚規格.md) · [動畫圖編輯](daily-agent/deploy/動畫圖匯入教學.md) | [原始碼、測試與發布](daily-agent/docs/開發與發布.md) |
 | [Android 操作、權限與建置](daily-agent/android/README.md) | [驗證紀錄](daily-agent/VALIDATION.md) · [更新紀錄](daily-agent/CHANGELOG.md) |
@@ -294,9 +291,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Open-DailyManager.ps1
 
 ### 預覽版的驗證範圍
 
-Windows x64，RTX 3080 Ti 12 GB。本版逐項測試 **269/269 通過**，並驗證安裝包解出檔案校驗、全新安裝、升級、回復、離線功能及搜尋設定與重啟；Qwen 本機推理另於本機配置實測成功。搜尋輪替使用模擬 API 驗證，尚未驗證真實帳戶的額度與回覆品質。預設併行測試曾出現 Google 模擬回呼連線中斷，詳見[驗證紀錄](daily-agent/VALIDATION.md)。
+Windows x64，RTX 3080 Ti 12 GB。本版逐項測試 **253/253 通過**，並驗證安裝包解出檔案校驗、全新安裝、升級、回復、離線功能及搜尋設定與重啟；Qwen 本機推理另於本機配置實測成功。搜尋輪替使用模擬 API 驗證，尚未驗證真實帳戶的額度與回覆品質。回歸測試曾間歇出現本機 HTTP／HTTPS 回呼連線中斷，詳見[驗證紀錄](daily-agent/VALIDATION.md)。
 
-Windows 安裝器尚未簽章；Android 實機觸控、權限、背景耗電，以及真實 Google 帳號備份與 PocketDrop Room 尚待完整驗收。[已測項目與界線 →](daily-agent/VALIDATION.md)
+
+Windows 安裝器尚未簽章；Android 實機觸控、權限、背景耗電與真實 Google 帳號備份仍待驗收。[已測項目與界線 →](daily-agent/VALIDATION.md)
 
 發布不包含私人記憶、配對憑證、私密設定、模型權重或 APK 私鑰。第三方模型、依賴與角色素材各自遵循授權，再散布前請核對。
 

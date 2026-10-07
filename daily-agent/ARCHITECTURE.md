@@ -30,7 +30,6 @@
 | `images` | 生圖、改圖、模式及暫時圖片上下文 | `models/ImageGeneration.js`；圖片存 `data/generated-images/`，提示詞不進記憶宮殿 |
 | `companion` | 待機閒聊與事件通知 | `idle/IdleCompanion.js` 等；觀察／搜尋停用時使用無副作用的替代接口 |
 | `mobile` | APK 配對、檔案共享、手機位置、Cloudflare | `remote/` 的裝置／Gateway／Tunnel，以及 `environment/PhoneBridge.js` |
-| `pocketdrop` | Room 配對與文字傳送 | `remote/PocketDrop.js` 等；自己的加密憑證及暫時回覆緩存 |
 | `voice` | 麥克風、Windows／Kokoro 語音 | 原生端 `desktop/VoiceController.cs` 等負責設備；模組管理器可整體停用，API 回報資源可用性 |
 | `backup` | Google 登入、Drive 備份與下載 | `features/backup/` 擁有自己的 OAuth 回呼、Windows DPAPI、SQLite 一致性快照；不相依手機／搜尋／生圖，停用會取消回呼、上傳及計時器 |
 | `appearance` | 動畫圖的本地視覺分類 | `features/appearance/` 擁有 `/api/modules/appearance/classify`；原生 `SpriteSheetImport.cs` 負責切格、去背、對齊及組裝，停用看圖仍可離線編輯 |
