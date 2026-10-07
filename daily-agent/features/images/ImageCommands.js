@@ -55,7 +55,7 @@ class ImageCommands {
     if (!this.mobileImageSessions.has(request.deviceId))
       this.mobileImageSessions.set(request.deviceId, {
         imageMode: false,
-        imageProfile: this.config?.imageDefaultProfile || "fast",
+        imageProfile: "quality",
         lastImageSpec: null,
       });
     return this.mobileImageSessions.get(request.deviceId);
@@ -110,7 +110,7 @@ class ImageCommands {
       const photo = imageProfile === "photo";
       const plannerInstruction = photo
         ? '把使用者的圖片需求整理成適合寫實 SDXL 的 JSON。若有 source_image，先看懂附件；prompt 要完整保留使用者指定的人物、姿勢、身體部位、構圖與攝影風格，再只套用 requested_change。若輸入包含 base_spec，完整保留原人物與成人尺度，只改 requested_change。prompt 使用清楚、逗號分隔的英文短標籤；具體寫出成年年齡、全身或近景、視角、姿勢、鏡頭、光線、皮膚與場景，不得把使用者要求的部位省略。除非使用者要求，不要加入插畫、動漫、3D、CGI。沒有明確要求裸露或色情時，不得自行加入 nude、naked、nsfw 或 explicit。negative_prompt 只放使用者不要的內容與畫質缺陷，不要加入正向要求。width/height 選 768～1216 且為 64 倍數。steps 26～30，cfg 4～6。只輸出 JSON：{"prompt":"","negative_prompt":"","width":1024,"height":1024,"steps":28,"cfg":6}'
-        : '把使用者的圖片需求整理成 JSON。若有 source_image，先看懂附件；prompt 要描述原圖中需要保留的角色、外觀、服裝、姿勢、構圖與風格，再只套用 requested_change。若輸入包含 base_spec，這是修改上一張：完整保留原角色、性別、外觀、成人尺度與風格，只改 requested_change 明確要求的部分。prompt 使用適合 NoobAI XL 1.1 的英文 Danbooru 標籤為主，開頭加入 masterpiece, best quality, newest, absurdres, highres；不要把「亞洲蹲」誤解成人物性別。沒有明確要求裸露或色情時，不得加入 nude、naked、nsfw、explicit、mature content 或脫衣內容。negative_prompt 只放畫質缺陷，不要固定加入 nsfw。width/height 依桌布、直圖、橫圖或方圖選 768～1216 且為 64 倍數。steps 25～30，cfg 5～6。只輸出 JSON：{"prompt":"","negative_prompt":"","width":1024,"height":1024,"steps":28,"cfg":5.5}';
+        : '把使用者的圖片需求整理成 JSON。若有 source_image，先看懂附件；prompt 要描述原圖中需要保留的角色、外觀、服裝、姿勢、構圖與風格，再只套用 requested_change。若輸入包含 base_spec，這是修改上一張：完整保留原角色、性別、外觀、成人尺度與風格，只改 requested_change 明確要求的部分。prompt 使用適合 NoobAI XL V-Pred 的英文 Danbooru 標籤為主，開頭加入 masterpiece, best quality, newest, absurdres, highres；不要把「亞洲蹲」誤解成人物性別。沒有明確要求裸露或色情時，不得加入 nude、naked、nsfw、explicit、mature content 或脫衣內容。negative_prompt 只放畫質缺陷，不要固定加入 nsfw。width/height 依桌布、直圖、橫圖或方圖選 768～1216 且為 64 倍數。steps 25～30，cfg 5～6。只輸出 JSON：{"prompt":"","negative_prompt":"","width":1024,"height":1024,"steps":28,"cfg":5.5}';
       const answer = await this.full.chat(
         [{ role: "system", content: plannerInstruction }, plannerUser],
         { format: "json", num_predict: 900, temperature: 0.3 },
@@ -222,10 +222,8 @@ export async function imageChat(agent, text, image, document, request = {}) {
         imageSession.imageMode = imageModeCommand !== "exit";
         if (imageModeCommand === "new" || imageModeCommand === "exit")
           imageSession.lastImageSpec = null;
-        if (imageModeCommand === "enter_quality")
+        if (imageModeCommand === "enter_quality" || imageModeCommand === "exit")
           imageSession.imageProfile = "quality";
-        if (imageModeCommand === "enter_fast")
-          imageSession.imageProfile = "fast";
         if (imageModeCommand === "enter_photo")
           imageSession.imageProfile = "photo";
         if (previousProfile !== imageSession.imageProfile)
@@ -237,7 +235,7 @@ export async function imageChat(agent, text, image, document, request = {}) {
           imageModeCommand === "new"
             ? "上一張已結束。直接描述新圖片，我會從零生成；說「結束生圖」才會回到一般聊天。"
             : imageSession.imageMode
-              ? `已進入${imageSession.imageProfile === "photo" ? "真人" : imageSession.imageProfile === "quality" ? "動漫" : "快速動漫"}模式。直接描述會生成新圖片；只有明確說「修改上一張」才會延續。說「結束生圖」回到一般聊天。`
+              ? `已進入${imageSession.imageProfile === "photo" ? "真人" : "動漫"}模式。直接描述會生成新圖片；只有明確說「修改上一張」才會延續。說「結束生圖」回到一般聊天。`
               : "已結束生圖模式，回到一般聊天。";
         this.bus.publish(
           "message",

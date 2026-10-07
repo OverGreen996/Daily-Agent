@@ -68,7 +68,7 @@ test('OAuth loopback checks state and PKCE, persists encrypted-session inputs an
   const callback=new URL(auth.searchParams.get('redirect_uri'));assert.equal(callback.hostname,'127.0.0.1');
   callback.search=new URLSearchParams({state:'bad',code:'test-code'});assert.equal((await fetch(callback)).status,403);assert.equal(drive.status().login_pending,true);
   callback.search=new URLSearchParams({state:'é'.repeat(auth.searchParams.get('state').length),code:'test-code'});assert.equal((await fetch(callback)).status,403);
-  callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'test-code'});assert.equal((await fetch(callback)).status,200);
+  callback.search=new URLSearchParams({state:auth.searchParams.get('state'),code:'test-code'});const completed=await fetch(callback);assert.equal(completed.status,200);assert.match(await completed.text(),/登入完成/);
   assert.equal(createHash('sha256').update(exchange.get('code_verifier')).digest('base64url'),auth.searchParams.get('code_challenge'));
   assert.equal(exchange.get('redirect_uri'),auth.searchParams.get('redirect_uri'));assert.equal(drive.status().connected,true);
   assert.equal(vault.load().refresh_token,'refresh-test');assert.equal(drive.controllers.size,0);

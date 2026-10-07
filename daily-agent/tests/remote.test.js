@@ -25,6 +25,21 @@ test('image mode commands and continuation state are isolated per device',async(
   assert.equal(agent.imageSessionFor({deviceId:'phone-b'}).imageMode,false);
   await agent.chat('結束這張圖');assert.equal(agent.lastImageSpec,null);assert.equal(agent.imageMode,true);
 });
+test('desktop and phone direct generation default to anime, including old settings and mode switches',async()=>{
+  const agent=new AgentCore({config:{imageDefaultProfile:'fast'},bus:{publish(){}},memory:{working:{add(){}}},companion:{boredom:{respond(){}}}});
+  const profiles=[];
+  agent.generateImage=async(_text,_prompt,request)=>{profiles.push(agent.imageSessionFor(request).imageProfile);return {content:'完成'};};
+  assert.equal(agent.imageProfile,'quality');
+  await agent.chat('幫我畫森林裡的狐狸');
+  await agent.chat('幫我畫森林裡的狐狸',null,null,{deviceId:'phone'});
+  await agent.chat('真人模式');assert.equal(agent.imageProfile,'photo');
+  await agent.chat('生圖模式');assert.equal(agent.imageProfile,'quality');
+  await agent.chat('真人模式',null,null,{deviceId:'phone'});
+  await agent.chat('結束生圖',null,null,{deviceId:'phone'});
+  await agent.chat('幫我畫森林裡的狐狸',null,null,{deviceId:'phone'});
+  await agent.chat('快速生圖模式');assert.equal(agent.imageProfile,'quality');
+  assert.deepEqual(profiles,['quality','quality','quality']);
+});
 test('automatic phone location is coarse, request-scoped and rejects stale retry coordinates',async t=>{
   let received;const f=await fixture(t,async(text,image,document,request)=>{received=request;return {content:'ok'};});
   const location={latitude:25.123456,longitude:121.56789,captured_at:Date.now()};

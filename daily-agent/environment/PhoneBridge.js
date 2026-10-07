@@ -41,10 +41,10 @@ export class PhoneBridge{
         const wasPc=this.location.activeDevice!=='android';this.location.updateAndroid({latitude:data.latitude,longitude:data.longitude,accuracy:data.accuracy});this.location.setActiveDevice('android');this.lastFix=this.now();
         const key=Math.round(data.latitude*10)+':'+Math.round(data.longitude*10);if(wasPc||key!==this.locationKey){this.locationKey=key;this.onLocation();}return send(200,{received:true});
       }
-      if(req.url==='/revoke'){send(200,{revoked:true});await this.close();return;}
+      if(req.url==='/revoke'){res.setHeader('Connection','close');send(200,{revoked:true});await this.close({force:false});return;}
       send(404,{error:'沒有此功能。'});
     }catch{if(!res.headersSent)send(400,{error:'資料格式錯誤。'});}
   }
   status(){return {listening:!!this.server,paired:!!this.token,lastFix:this.lastFix||null};}
-  async close(){clearTimeout(this.timer);const server=this.server;this.server=null;this.token=null;this.code=null;this.lastFix=null;this.locationKey=null;const hadPhone=!!this.location.phone;this.location.phone=null;this.location.setActiveDevice('pc');if(hadPhone)this.onLocation();if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}}
+  async close({force=true}={}){clearTimeout(this.timer);const server=this.server;this.server=null;this.token=null;this.code=null;this.lastFix=null;this.locationKey=null;const hadPhone=!!this.location.phone;this.location.phone=null;this.location.setActiveDevice('pc');if(hadPhone)this.onLocation();if(server){if(force)server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}}
 }

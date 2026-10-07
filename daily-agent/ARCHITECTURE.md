@@ -8,7 +8,10 @@
 | --- | --- | --- |
 | 安裝與設定 | `Open-DailyManager.ps1`、`Setup-All-DailyAgent.ps1` | 中文設定視窗、選擇下載項目、模型準備、清理安裝暫存 |
 | 本機 HTTP | `server.js` | Host／Origin／權杖檢查、輸入大小限制、核心路由；模組路由經同一層驗證 |
-| 核心 | `core/createAgent.js`、`core/AgentCore.js` | 建立共用服務、序列化對話、上下文預算、模型調度、安全停止 |
+| 核心 | `core/createAgent.js`、`core/AgentCore.js` | 組裝 Daily 自己的服務、序列化對話、上下文預算與模型調度 |
+| 啟動設定 | `core/RuntimeConfig.js` | 統一派生資料路徑、讀取可選設定；損壞設定保留原檔並記錄警告 |
+| 模組組裝 | `modules/Bindings.js` | 核心與選用功能的唯一組裝邊界；初始化失敗後改接無副作用替代接口 |
+| 停止流程 | `core/Shutdown.js` | 取消推理、等候工作結束、保存記憶、各自清理資源；回報未完成步驟 |
 | 模組宿主 | `modules/ModuleHost.js`、`modules/catalog.json` | 按需載入、相依檢查、工具與 API 註冊、狀態、逆序資源清理；設定與宿主共用一份模組清單 |
 | 功能模組 | `features/<id>/index.js` | 功能自己的建立、指令、服務與資源生命週期 |
 | 自訂插件 | `plugins/<name>/index.js` | 透過相同接口加入自己的服務；只有明確登記的本機插件會載入 |
@@ -16,13 +19,11 @@
 
 核心仍保留工作對話、記憶資料庫及模型調度，供多個功能共同使用。模組不是另一份 Agent，也不另開自己的模型服務。個人資料／行程是可停用的助理模組；停用它不會關閉基本對話或刪除記憶資料庫。
 
-XNG 是獨立服務；搜尋模組透過 `browser/XngHubClient.js` 消費 Evidence Pack，保留來源分類、節錄限制和未核實版本狀態。`browser/SharedCore.js` 預設只載入發行來源固定的 `xng-core/` 副本；打包驗證 `snapshot.json`，不依賴旁邊的開發資料夾。獨立服務的 Node、Docker、設定與快取不歸 Daily Agent 安裝／卸載管理。啟動與更新核心的方法見 [XNG 接入教學](deploy/XNG接入教學.md)。
 
 ## 現有功能歸屬
 
 | 模組 ID | 功能 | 現有底層實作／資料 |
 | --- | --- | --- |
-| `search` | 瀏覽、XNG／Tavily／既有瀏覽器搜尋、來源證據 | `browser/`、`core/SearchReply.js`；XNG 的命中、排名及證據規則沿用 |
 | `environment` | 天氣、位置、環境及畫面觀察 | `environment/LocationProvider.js`、`idle/WeatherWatch.js`、`PerceptionEngine.js`、`LightPerception.js`、`ScreenVision.js` |
 | `assistant` | 姓名／工作／喜好、行程、待辦、筆記、習慣 | `memory/PersonalMemory.js` 及 organizer；`idle/CalendarWatch.js`；資料在既有宮殿資料庫、`calendar.json` |
 | `documents` | 文件庫、摘要、比較、OCR | `documents/`；文件與摘要位於 `data/documents/` |
@@ -101,8 +102,28 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\daily-agent\desktop\Build-
 新增模組最少驗證：單獨停用、相依缺失、入口缺檔、基本聊天繼續、API 不繞過認證、手機工具限制、停止時資源清理。測試使用隔離資料，不改使用者宮殿。`createAgent()` 現在為非同步，程式端必須 `await createAgent()`。
 # 安裝目錄與執行資源
 
-獨立 XNG 的核心使用 `.plugins/versions/<version>/core`，`.plugins/current.json` 保存下次啟動與可回復版本；`.runtime` 保存共享搜尋狀態。下載、完整性校驗及回歸均由 XNG 自己的管理器負責，Daily Agent 只開啟管理入口與透過 HTTP 搜尋。已運行的服務要明確重啟才切換。Cloudflare 管理公開下載與更新索引，沒有上傳本機資料。
 
-`integrations/xng-plugin` 是發佈工具副本；維護時修改獨立 XNG 的 `plugins` 原始碼，再同步該副本並驗證，不在此另外實作搜尋演算法。
 
 安裝版以 `.daily-install.json` 確認安裝根目錄，程式碼放在 `releases/<版本>`，模型及寵物設定放在根目錄的 `runtime`，記憶放在 `data`。PowerShell、Node 與原生桌寵各使用集中式路徑解析器，直接讀取共享目錄，不再依賴目錄 junction。原始碼版仍使用專案內 `.daily-runtime`。
+
+搜尋現況（2026-10-05）：舊搜尋核心、下載插件及其安裝／更新入口已退役。Daily Agent 不再安裝 Docker 搜尋容器，也不會重建舊引擎。三家 API 輪替已完成隔離模擬驗證；尚未填入真實金鑰，不能聲稱已驗證正式帳戶搜尋。聊天、記憶、行程、生圖、手機連線與公開網頁讀取保留；未設定搜尋 API 時明確顯示「搜尋尚未設定」。
+
+## 搜尋 API 邊界（2026-10-05 本機版本）
+
+`features/search/index.js` 只負責組裝模組、瀏覽器與本機路由。`search/Providers.js` 封裝 Exa Auto、Tavily Basic、Firecrawl Search 的固定端點與低成本參數；`search/SearchRouter.js` 決定順位、失敗切換、快取、官方用量核對與取消；`search/RotationStore.js` 用獨立 SQLite 保存設定、原子用量保留、冷卻、跨程序鎖與快取；`search/CredentialStore.js` 用 Windows DPAPI 保存金鑰。搜尋模組不依賴記憶宮殿的資料表，也不使用 Docker 或 Cloudflare。
+
+`core/SearchTurnBudget.js` 只約束聊天／搜尋流程；Qwen 不要求搜尋時不開搜尋工具，模型即使自行要求搜尋也會被阻止。需要搜尋的回合最多兩個查詢。生圖、文件與助理功能仍沿原有獨立路徑。瀏覽器進入待機只取消查詢；模組 dispose 才關閉搜尋資料庫。
+
+Daily 專用 `/api/modules/search/query`，搜尋資料預設保存於 DAILY_DATA/search；與靈動島的金鑰、用量、快取、冷卻及鎖分開。其他 App 不依賴 Daily 服務。接口、免費額度限制、金鑰設定與官方文件見 [搜尋API與輪替教學](deploy/搜尋API與輪替教學.md)。`browser/SearchProvider.js` 的舊 Tavily 類別目前僅保留給舊程式與相容性測試；正式搜尋模組全部走新 Router。
+
+## 獨立運行與最小依賴
+
+Daily 不呼叫靈動島的專用服務，不讀取它的搜尋資料，也不需要先啟動另一個 App。預設模型服務是 Daily 自己的 `127.0.0.1:11435`；核心資料是自己的 `DAILY_DATA`，搜尋預設是其下的 `search`。維護程式或隔離測試以 `createAgent({dataDir})` 指定資料目錄時，搜尋路徑也跟著切換；需要其他 Daily 專用目錄時才明確提供 `searchDataDir`。
+
+核心儲存使用 Node 內建 SQLite、檔案系統與 HTTP，不引入新的框架或資料庫服務。精準分詞器在啟動的可選階段載入；套件或詞表缺失時使用較保守的 token 估算，不因此拒絕開啟程式。搜尋 API、瀏覽器、PDF、語音、生圖、Google 備份與手機傳輸都歸各自模組所有；停用模組不 import 其入口。不要為了新功能在核心新增第三方套件的頂層 import。
+
+沒有本地模型服務時仍能開啟程式、設定與記憶資料；模型狀態查詢有兩秒上限。AI 對話仍需要自己的 Ollama／Qwen，不能把「可開啟」宣稱為無模型也能生成答案。關閉時先取消推理與查詢、等候佇列完成，再清理模組；一個選用資源清理失敗不會阻止其他資源及記憶資料庫關閉。`/api/shutdown` 的 `warnings` 明確記錄失敗步驟；模型卸載無法核實時不宣稱 GPU 已釋放。
+
+模組的 `create` 與 `attach` 只應建立接口與註冊服務，避免啟動推理或花費 API 額度。`attach` 失敗會撤回模組提供的核心引用及模型角色；相依模組也停用，沒有相依的功能繼續使用。`dispose` 必須處理模組自己建立的 socket、計時器與 worker，避免重複關閉別的模組或核心記憶資料庫。
+
+獨立啟動與資源邊界回歸：`node --test tests/bootstrap-independence.test.js tests/modules.test.js tests/search-isolation.test.js tests/streaming.test.js`。驗證不使用真實模型或 API 額度，包含第三方套件不可用、所有選用模組停用、設定損壞、初始化失敗與模型服務離線。

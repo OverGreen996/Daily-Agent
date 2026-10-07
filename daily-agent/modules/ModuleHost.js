@@ -110,6 +110,10 @@ export class ModuleHost {
   enabled(id) {
     return this.records.get(id)?.state === "active";
   }
+  modelDefinitions() {
+    return Object.assign({}, ...this.order.filter(id => this.enabled(id))
+      .map(id => this.get(id)?.models || {}));
+  }
   require(id) {
     if (!this.enabled(id)) throw new ModuleUnavailable(id);
     return this.get(id);

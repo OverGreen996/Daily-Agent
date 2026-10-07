@@ -1,10 +1,10 @@
-﻿param([switch]$SkipModel,[string]$Profiles='all')
+﻿param([switch]$SkipModel,[string]$Profiles='anime')
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Daily-SetupState.ps1')
 $chosen=@($Profiles.Split(',') | ForEach-Object {$_.Trim().ToLowerInvariant()})
 foreach($profile in $chosen){if($profile -notin @('all','legacy','anime','photo')){throw ('Unknown image profile: '+$profile)}}
-$legacy=$chosen -contains 'all' -or $chosen -contains 'legacy'
-$anime=$chosen -contains 'all' -or $chosen -contains 'anime'
+# Legacy callers now install the supported anime profile.
+$anime=$chosen -contains 'all' -or $chosen -contains 'anime' -or $chosen -contains 'legacy'
 $photo=$chosen -contains 'all' -or $chosen -contains 'photo'
 $root=$PSScriptRoot
 $runtime=Get-DailyRuntimePath $PSScriptRoot
@@ -14,8 +14,6 @@ $seven=Join-Path $downloads '7zr.exe'
 $target=Join-Path $runtime 'ComfyUI_windows_portable'
 $comfyUrl='https://github.com/Comfy-Org/ComfyUI/releases/download/v0.37.0/ComfyUI_windows_portable_nvidia_cu126.7z'
 $comfySha='4F8C587C8319A3595DCDC6B8FBFC7234D2D02FA6B1A328C1AB3E819C97D95FB8'
-$modelUrl='https://huggingface.co/Laxhar/noobai-XL-1.1/resolve/main/NoobAI-XL-v1.1.safetensors?download=true'
-$modelSha='6681E8E4B134C81F16533ACEDB0D406D7E5E366E1624B4105178C64D00B05D51'
 $qualityModelUrl='https://huggingface.co/Panchovix/noobai-XL-Vpred-1.0-perpendicular-cyberfix/resolve/main/NoobAI-XL-Vpred-v1.0-cyberfix-perpendicular.safetensors?download=true'
 $qualityModelSha='C16AE349FD371A4B064929544D5D428508EA59F4863BB1E268EC9CFB01EC999C'
 $photoModelUrl='https://huggingface.co/wiikoo/checkpoint/resolve/main/SDXL/PornMaster-Pro-SDXL-V7-VAE.safetensors?download=true'
@@ -49,27 +47,22 @@ if(!(Test-ComfyEnvironment)){
 }
 if(!(Test-ComfyEnvironment)){throw '生圖環境未準備完整。請更新 NVIDIA 驅動後，按「繼續下載／修復」；不需要手動刪除檔案。'}
 [IO.File]::WriteAllText((Join-Path $target '.environment-ready.json'),('{"schema":1,"ready":true}'),[Text.UTF8Encoding]::new($false))
-$checkpoint=Join-Path $target 'ComfyUI\models\checkpoints\NoobAI-XL-v1.1.safetensors'
 $qualityCheckpoint=Join-Path $target 'ComfyUI\models\checkpoints\NoobAI-XL-Vpred-v1.0-cyberfix-perpendicular.safetensors'
 $photoCheckpoint=Join-Path $target 'ComfyUI\models\checkpoints\PornMaster-Pro-SDXL-V7-VAE.safetensors'
 $upscaler=Join-Path $target 'ComfyUI\models\upscale_models\RealESRGAN_x4plus_anime_6B.pth'
-if(!$SkipModel -and $legacy){Download-Resume $modelUrl $checkpoint $modelSha}
 if(!$SkipModel -and $anime){Download-Resume $qualityModelUrl $qualityCheckpoint $qualityModelSha}
 if(!$SkipModel -and $photo){Download-Resume $photoModelUrl $photoCheckpoint $photoModelSha}
 if(!$SkipModel -and $anime){Download-Resume $upscalerUrl $upscaler $upscalerSha}
 if(!(Test-Path -LiteralPath (Join-Path $target 'python_embeded\python.exe'))){throw '找不到 ComfyUI Python runtime'}
-if(!$SkipModel -and $legacy -and (!(Test-Path -LiteralPath $checkpoint) -or (Get-Item -LiteralPath $checkpoint).Length -lt 7100000000)){throw 'NoobAI XL checkpoint 不完整'}
-if(!$SkipModel -and $legacy -and (Get-FileHash -LiteralPath $checkpoint -Algorithm SHA256).Hash -ne $modelSha){throw 'NoobAI XL checkpoint 雜湊不符，請刪除該檔後重新執行安裝。'}
 if(!$SkipModel -and $anime -and (!(Test-Path -LiteralPath $qualityCheckpoint) -or (Get-FileHash -LiteralPath $qualityCheckpoint -Algorithm SHA256).Hash -ne $qualityModelSha)){throw 'NoobAI XL V-Pred checkpoint 不完整或雜湊不符。'}
 if(!$SkipModel -and $photo -and (!(Test-Path -LiteralPath $photoCheckpoint) -or (Get-FileHash -LiteralPath $photoCheckpoint -Algorithm SHA256).Hash -ne $photoModelSha)){throw 'PornMaster Pro SDXL V7 checkpoint 不完整或雜湊不符。'}
 if(!$SkipModel -and $anime -and (!(Test-Path -LiteralPath $upscaler) -or (Get-FileHash -LiteralPath $upscaler -Algorithm SHA256).Hash -ne $upscalerSha)){throw 'RealESRGAN 動漫超解析模型不完整或雜湊不符。'}
 Write-Host ('所選生圖模型配置完成：'+($chosen -join ', ')+ '。只可使用已安裝的對應模式。')
-# A fresh selective installation starts with an installed profile, without changing existing preferences.
+# Ordinary generation starts in anime; photo remains an explicit command.
 if(!$SkipModel -and ($anime -or $photo)){
   $envFile=Join-Path $root 'daily-agent\.env.local'
   $lines=@(if(Test-Path -LiteralPath $envFile){Get-Content -LiteralPath $envFile -Encoding UTF8})
-  if(!($lines | Where-Object {$_ -match '^\s*DAILY_IMAGE_DEFAULT_PROFILE='})){
-    $lines+='DAILY_IMAGE_DEFAULT_PROFILE='+$(if($anime){'quality'}else{'photo'})
-    [IO.File]::WriteAllText($envFile,($lines -join "`n")+"`n",[Text.UTF8Encoding]::new($false))
-  }
+  $lines=@($lines | Where-Object {$_ -notmatch '^\s*DAILY_IMAGE_DEFAULT_PROFILE='})
+  $lines+='DAILY_IMAGE_DEFAULT_PROFILE=quality'
+  [IO.File]::WriteAllText($envFile,($lines -join "`n")+"`n",[Text.UTF8Encoding]::new($false))
 }

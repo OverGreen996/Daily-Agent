@@ -8,18 +8,9 @@ if(Test-Path -LiteralPath $stage){throw 'Version already packaged'}
 $app=Join-Path $stage 'app'
 New-Item -ItemType Directory -Force $app | Out-Null
 $native=@(& (Join-Path $project 'daily-agent\desktop\Build-Pet.ps1'))[-1]
-foreach($name in @('Open-DailyPet.ps1','Start-DailyAgent.ps1','Stop-DailyAgent.ps1','Setup-DailyAgent.ps1','Setup-All-DailyAgent.ps1','Setup-All-DailyAgent.cmd','Select-DailyFeatures.ps1','Daily-SetupState.ps1','Open-DailyManager.ps1','Open-PetEditor.ps1','Open-PetImport.ps1','Open-PetImport.cmd','Setup-SpeechRecognition.ps1','Setup-Browser.ps1','Setup-LocalSearch.ps1','Setup-Kokoro.ps1','Setup-MobileBridge.ps1','Setup-ImageGeneration.ps1','Start-SearXNG.ps1','Configure-Search.ps1')){Copy-Item -LiteralPath (Join-Path $project $name) -Destination $app}
+foreach($name in @('Open-DailyPet.ps1','Start-DailyAgent.ps1','Stop-DailyAgent.ps1','Setup-DailyAgent.ps1','Setup-All-DailyAgent.ps1','Setup-All-DailyAgent.cmd','Select-DailyFeatures.ps1','Daily-SetupState.ps1','Open-DailyManager.ps1','Open-PetEditor.ps1','Open-PetImport.ps1','Open-PetImport.cmd','Setup-SpeechRecognition.ps1','Setup-Browser.ps1','Setup-Kokoro.ps1','Setup-MobileBridge.ps1','Setup-ImageGeneration.ps1','Configure-Search.ps1')){Copy-Item -LiteralPath (Join-Path $project $name) -Destination $app}
 $agent=Join-Path $app 'daily-agent';New-Item -ItemType Directory -Force $agent | Out-Null
-# Bundle a compatibility copy for portable Daily-Agent installations. The running
-# shared XNG service and its data live separately and are not owned by this installer.
-$sharedCore=Join-Path $project 'daily-agent\xng-core'
-$snapshot=Get-Content (Join-Path $sharedCore 'snapshot.json') -Raw | ConvertFrom-Json
-foreach($entry in $snapshot.files){
- if($entry.path -notmatch '^[A-Za-z._-]+\.(js|json)$'){throw 'Invalid XNG snapshot path'}
- if((Get-FileHash -LiteralPath (Join-Path $sharedCore $entry.path)).Hash.ToLowerInvariant() -ne $entry.sha256){throw ('XNG snapshot changed: '+$entry.path+'; sync and test before packaging')}
-}
-Copy-Item -LiteralPath $sharedCore -Destination (Join-Path $agent 'xng-core') -Recurse
-foreach($name in @('core','modules','features','plugins','docs','models','memory','browser','tools','idle','environment','documents','desktop','ui','remote','deploy','scripts','node_modules')){Copy-Item -LiteralPath (Join-Path $project ('daily-agent\'+$name)) -Destination $agent -Recurse}
+foreach($name in @('core','modules','features','plugins','docs','models','memory','browser','search','tools','idle','environment','documents','desktop','ui','remote','deploy','scripts','node_modules')){Copy-Item -LiteralPath (Join-Path $project ('daily-agent\'+$name)) -Destination $agent -Recurse}
 New-Item -ItemType Directory -Force (Join-Path $agent 'android') | Out-Null
 # Android is distributed separately on GitHub; PC packages contain only its link and QR.
 foreach($name in @('README.md','VALIDATION.md')){Copy-Item -LiteralPath (Join-Path $project ('daily-agent\android\'+$name)) -Destination (Join-Path $agent 'android')}
@@ -39,6 +30,9 @@ if((Get-Item (Join-Path $vendor 'node\LICENSE.txt')).Length -lt 10000){throw 'No
 Copy-Item -LiteralPath $native -Destination (Join-Path $vendor 'native-pet')
 Get-ChildItem -LiteralPath (Join-Path $project '.daily-runtime\tokenizer') -File | ForEach-Object {Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $vendor 'tokenizer')}
 Copy-Item -LiteralPath (Join-Path $project 'daily-agent\deploy\Install-DailyAgent.ps1') -Destination $stage
+# Refuse a package that can restore retired search runtime or installation guides.
+& node (Join-Path $project 'daily-agent\scripts\audit-search-retirement.mjs') $app
+if($LASTEXITCODE -ne 0){throw 'Package contains retired search integration. Fix the audit before publishing.'}
 $files=@(Get-ChildItem -LiteralPath $app -Recurse -File | ForEach-Object {@{path=$_.FullName.Substring($app.Length+1);sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
 @{version=$Version;dataFormat=1;created_at=[DateTime]::UtcNow.ToString('o');files=$files} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $stage 'release-manifest.json') -Encoding UTF8
 if(!$NoZip){Compress-Archive -LiteralPath (Join-Path $stage 'app'),(Join-Path $stage 'Install-DailyAgent.ps1'),(Join-Path $stage 'release-manifest.json') -DestinationPath ($stage+'.zip') -CompressionLevel Optimal;Get-FileHash ($stage+'.zip') -Algorithm SHA256 | Format-List}

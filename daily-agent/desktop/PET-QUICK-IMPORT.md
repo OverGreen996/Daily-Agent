@@ -7,8 +7,8 @@
 | 下載 | 用途 |
 | --- | --- |
 | [Daily Agent 安裝器](https://github.com/OverGreen996/Daily-Agent/releases/latest/download/DailyAgent-Setup.exe) | 電腦尚未安裝 Daily Agent 時先安裝 |
-| [PET 快速匯入工具 ZIP](https://github.com/OverGreen996/Daily-Agent/releases/download/pet-import-v1.0.0-20261005/DailyAgent-PET-Import.zip) | 解壓後開啟工具，不需編譯或 Windows SDK |
-| [工具 SHA-256](https://github.com/OverGreen996/Daily-Agent/releases/download/pet-import-v1.0.0-20261005/DailyAgent-PET-Import.zip.sha256) | 核對 ZIP 下載是否完整 |
+| [PET 快速匯入工具 ZIP](https://github.com/OverGreen996/Daily-Agent/releases/download/pet-import-v1.0.2-20261007/DailyAgent-PET-Import.zip) | 解壓後開啟工具，不需編譯或 Windows SDK |
+| [工具 SHA-256](https://github.com/OverGreen996/Daily-Agent/releases/download/pet-import-v1.0.2-20261007/DailyAgent-PET-Import.zip.sha256) | 核對 ZIP 下載是否完整 |
 
 1. 確認這台 Windows x64 電腦已安裝 Daily Agent。
 2. 下載工具 ZIP，右鍵選 **解壓縮全部**，保留整個資料夾。
@@ -16,7 +16,7 @@
 4. 選自己的 PET 素材，確認動畫與名稱，按 **匯入我的 Daily Agent**。
 5. 回到桌寵，右鍵 → **設定 → 更換寵物形象** → 選新寵物。
 
-工具可搭配目前已安裝的 Daily Agent，不必先更新整個主程式。不啟動後端、不下載模型、不接管 XNG、Docker 或 Cloudflare。沒有安裝版會提示先安裝，不會改寫工具資料夾或原始碼素材庫。
+工具可搭配目前已安裝的 Daily Agent，不必先更新整個主程式。不啟動後端、不下載模型、不修改其他程式或網路連線。沒有安裝版會提示先安裝，不會改寫工具資料夾或原始碼素材庫。
 
 ## 先用 GPT 的 PET 技能生成
 
@@ -67,7 +67,7 @@
 
 ## 原始碼版本的啟動方式
 
-1. 雙擊完整專案根目錄的 **Open-PetImport.cmd**。開發者本機可使用桌面「PET 快速匯入」捷徑。
+1. 雙擊完整專案根目錄的 **Open-PetImport.cmd**。桌面「PET 快速匯入」捷徑可直接指向已編譯的 `DailyAgent-PET-Import.exe`；它依安裝資訊讀取目前版本，不需每次編譯，更新主程式後也不用重建捷徑。
 2. 選 PET 的 **outputs 資料夾、製作／修復紀錄 ZIP，或完整 PNG／WebP 圖集**。也可以直接拖進視窗。
 3. 選正確版本，確認動畫及名稱，按 **匯入我的 Daily Agent**。
 
@@ -100,7 +100,7 @@
 - 結構通過不代表美術動作正確。若左跑朝向不對，請改選修正版；需要調整外觀可使用既有外觀編輯器。
 - 資料夾掃描至 4 層、最多 4,000 個項目；跳過子資料夾連結。自動尋找檔名含 spritesheet／sprite／atlas 的圖片；其他檔名可直接選單張圖。
 - 紀錄 ZIP 最多 256 MB、2,000 個項目；候選最多 64 張。圖片最多 32 MB，尺寸與像素限制沿用原生匯入器。錯誤檔、重複 ZIP entry、危險路徑或格式不符會顯示原因。
-- 不執行素材包內程式、指令或說明；不需要連網、AI 模型、Docker、XNG 或 Cloudflare。WebP 解碼使用 Daily Agent 隨附的 Node 與既有解碼器。
+- 不執行素材包內程式、指令或說明；不需要連網、AI 模型或外部搜尋服務。WebP 解碼使用 Daily Agent 隨附的 Node 與既有解碼器。
 - 現在支援 Windows 桌寵；不會自動把素材推到手機。手機同步沿用原本外觀同步流程。
 - 匯入新增獨立外觀，不覆蓋原外觀；匯出若目的檔案已存在，請選新檔名。
 

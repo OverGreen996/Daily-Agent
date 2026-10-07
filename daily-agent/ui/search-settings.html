@@ -1,0 +1,7 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="daily-token" content="__TOKEN__"><title>搜尋 API 與輪替 · Daily Agent</title><link rel="stylesheet" href="/search-settings.css"><script type="module" src="/search-settings.js"></script></head>
+<body><main><header><a href="/">← Daily Agent</a><p class="eyebrow">連線設定 / SEARCH</p><h1>搜尋 API 與輪替</h1><p>先由 Qwen 理解問題，需要網路資訊才搜尋。依順位逐家嘗試，失敗才切換。</p></header>
+<form id="settings"><section class="toolbar"><label class="toggle"><input id="enabled" type="checkbox">啟用網路搜尋</label><span>沒有金鑰仍可聊天</span></section><div id="providers"></div>
+<details><summary>進階設定</summary><div class="grid"><label>每次查詢總時限（秒）<input id="timeout" type="number" min="3" max="30" step="1" required></label><label>暫時錯誤冷卻（秒）<input id="cooldown" type="number" min="1" max="3600" step="1" required></label></div><p>聊天每回合最多兩次查詢。每次查詢每家最多嘗試一次，排隊也計入時限。429 優先使用供應商的 Retry-After。</p></details>
+<footer><button id="save" class="primary" type="submit">儲存設定</button><button id="reload" type="button">重新讀取狀態</button></footer></form><p id="feedback" role="status" aria-live="polite"></p>
+<section class="note"><h2>用量怎麼算？</h2><p>預設本機上限：Exa 9 美元、Tavily 900 credits、Firecrawl 900 credits。數字是保守用量紀錄，失敗請求也會保留，不等於供應商帳戶的實際餘額。</p><p>Tavily 與 Firecrawl 會核對官方餘額；Exa 一般金鑰沒有餘額接口。請在三家後台選免費方案、關閉自動加值或付費，並避免與其他服務共用金鑰。本機限制無法控制帳戶外部的花費。</p><p>金鑰使用目前 Windows 帳號加密保存。這些設定只用於 Daily Agent，與靈動島分開。手機不會取得金鑰；Cloudflare 不需修改。</p></section></main></body></html>

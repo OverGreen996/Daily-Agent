@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { ModuleHost } from "../modules/ModuleHost.js";
 import { createAgent } from "../core/createAgent.js";
 import { moduleCatalog } from "../modules/catalog.js";
+import { withUnderstanding } from './helpers/Understanding.js';
 const bus = { publish() {} };
 function host(config = {}) {
   return new ModuleHost({
@@ -188,7 +189,7 @@ test("module settings are atomic, preserve installed plugins and take effect onl
 });
 function mockInference(agent) {
   agent.wake = async () => {};
-  agent.full.chat = async () => ({ message: { content: "測試對話正常。" } });
+  agent.full.chat = withUnderstanding(async () => ({ message: { content: "測試對話正常。" } }));
   agent.full.request = async () => ({ models: [] });
   agent.lifecycle.load_model = async () => {};
   agent.lifecycle.unload_model = async () => {};
@@ -262,7 +263,7 @@ test("physically missing feature entry does not prevent startup or chat", () => 
       fs.copyFileSync(path.join(source, name), path.join(directory, name));
     fs.unlinkSync(path.join(directory, "features", "images", "index.js"));
     // Ancestor node_modules resolves naturally; no links or shared data directory are modified.
-    const code = `import {createAgent} from './core/createAgent.js';const a=await createAgent({dataDir:'./isolated-data',perception:false});if(a.modules.enabled('images'))throw Error('missing module loaded');a.wake=async()=>{};a.full.chat=async()=>({message:{content:'ok'}});if((await a.chat('hello')).content!=='ok')throw Error('chat failed');await a.modules.dispose();a.memory.close();`;
+    const code = `import {createAgent} from './core/createAgent.js';const a=await createAgent({dataDir:'./isolated-data',perception:false});if(a.modules.enabled('images'))throw Error('missing module loaded');a.wake=async()=>{};a.full.chat=async(m,o)=>({message:{content:o.format?JSON.stringify({goal:'回應問候',topic:'問候',needs_search:false,query:''}):'ok'}});if((await a.chat('hello')).content!=='ok')throw Error('chat failed');await a.modules.dispose();a.memory.close();`;
     const result = spawnSync(
       process.execPath,
       ["--input-type=module", "-e", code],

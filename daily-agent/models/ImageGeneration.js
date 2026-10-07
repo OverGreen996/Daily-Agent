@@ -23,8 +23,9 @@ export function parseImageModeCommand(text) {
   if(/^(?:開啟|進入|開始|切換)?(?:真人|寫真|真人寫真)(?:生圖)?模式$/u.test(value))return 'enter_photo';
   if(/^(?:開啟|進入|開始|切換)?動漫(?:生圖)?模式$/u.test(value))return 'enter_quality';
   if(/^(?:開啟|進入|開始|切換)?高畫質生圖模式$/u.test(value))return 'enter_quality';
-  if(/^(?:開啟|進入|開始|切換)?快速生圖模式$/u.test(value))return 'enter_fast';
-  if(/^(?:開啟|進入|開始|切換)?生圖模式$/u.test(value))return 'enter';
+  // Old commands remain aliases; the fast backend has been retired.
+  if(/^(?:開啟|進入|開始|切換)?快速生圖模式$/u.test(value))return 'enter_quality';
+  if(/^(?:開啟|進入|開始|切換)?生圖模式$/u.test(value))return 'enter_quality';
   if(/^(?:結束這張圖|結束上一張|開始新圖|開新圖|新圖片|新圖|清除生圖上下文|清除圖片上下文)$/u.test(value))return 'new';
   if(/^(?:結束生圖|退出生圖模式|關閉生圖模式|回到聊天模式)$/u.test(value))return 'exit';
   return null;
@@ -212,15 +213,15 @@ export class ComfyUIImageRuntime {
   constructor({ root, checkpoint, qualityCheckpoint, photoCheckpoint, outputDir, port = 8189, fetcher = fetch }) {
     Object.assign(this, { root, checkpoint, qualityCheckpoint, photoCheckpoint, outputDir, port, fetcher });
     this.defaultCheckpoint=checkpoint;
-    this.profile='fast';
+    this.setProfile();
     this.process = null;
     this.base = `http://127.0.0.1:${port}`;
   }
-  setProfile(profile='fast') {
-    this.profile=['quality','photo'].includes(profile)?profile:'fast';
+  setProfile(profile='quality') {
+    this.profile=profile==='photo'?'photo':'quality';
     this.checkpoint=this.profile==='quality'
       ?(this.qualityCheckpoint||this.defaultCheckpoint)
-      :this.profile==='photo'?(this.photoCheckpoint||this.defaultCheckpoint):this.defaultCheckpoint;
+      :(this.photoCheckpoint||this.defaultCheckpoint);
   }
   python() { return path.join(this.root, "python_embeded", "python.exe"); }
   main() { return path.join(this.root, "ComfyUI", "main.py"); }
@@ -263,21 +264,10 @@ export class ComfyUIImageRuntime {
     throw Error("ComfyUI 啟動失敗，請查看 .daily-runtime/comfyui.err.log。");
   }
   workflow(spec) {
-    if(this.profile==='quality')return this.qualityWorkflow(spec);
-    if(this.profile==='photo')return this.photoWorkflow(spec);
-    return {
-      "1": { class_type: "CheckpointLoaderSimple", inputs: { ckpt_name: path.basename(this.checkpoint) } },
-      "2": { class_type: "CLIPTextEncode", inputs: { text: spec.prompt, clip: ["1", 1] } },
-      "3": { class_type: "CLIPTextEncode", inputs: { text: spec.negative_prompt, clip: ["1", 1] } },
-      "4": { class_type: "EmptyLatentImage", inputs: { width: spec.width, height: spec.height, batch_size: 1 } },
-      "5": { class_type: "KSampler", inputs: { seed: spec.seed, steps: spec.steps, cfg: spec.cfg, sampler_name: spec.sampler_name, scheduler: spec.scheduler, denoise: 1, model: ["1", 0], positive: ["2", 0], negative: ["3", 0], latent_image: ["4", 0] } },
-      "6": { class_type: "VAEDecode", inputs: { samples: ["5", 0], vae: ["1", 2] } },
-      "7": { class_type: "SaveImage", inputs: { filename_prefix: "DailyAgent", images: ["6", 0] } },
-    };
+    return this.profile==='photo'?this.photoWorkflow(spec):this.qualityWorkflow(spec);
   }
   editWorkflow(spec,sourceName,denoise=0.44) {
     const quality=this.profile==='quality';
-    const photo=this.profile==='photo';
     const finalWidth=Math.min(1792,Math.round(spec.width*1.5/64)*64);
     const finalHeight=Math.min(1792,Math.round(spec.height*1.5/64)*64);
     const model=quality?["8",0]:["1",0];
@@ -288,8 +278,8 @@ export class ComfyUIImageRuntime {
       "12":{class_type:"LoadImage",inputs:{image:sourceName}},
       "13":{class_type:"ImageScale",inputs:{image:["12",0],upscale_method:"lanczos",width:spec.width,height:spec.height,crop:"disabled"}},
       "4":{class_type:"VAEEncode",inputs:{pixels:["13",0],vae:["1",2]}},
-      "5":{class_type:"KSampler",inputs:{seed:spec.seed,steps:quality?Math.max(28,spec.steps):photo?Math.max(28,spec.steps):spec.steps,cfg:quality?Math.min(5,spec.cfg):photo?Math.min(7,spec.cfg):spec.cfg,sampler_name:quality?"euler":photo?"dpmpp_2m":spec.sampler_name,scheduler:quality?"normal":photo?"karras":spec.scheduler,denoise:Math.max(0.15,Math.min(0.85,Number(denoise)||0.44)),model,positive:["2",0],negative:["3",0],latent_image:["4",0]}},
-      "6":{class_type:(quality||photo)?"VAEDecodeTiled":"VAEDecode",inputs:(quality||photo)?{samples:["5",0],vae:["1",2],tile_size:512,overlap:64,temporal_size:64,temporal_overlap:8}:{samples:["5",0],vae:["1",2]}},
+      "5":{class_type:"KSampler",inputs:{seed:spec.seed,steps:Math.max(28,spec.steps),cfg:quality?Math.min(5,spec.cfg):Math.min(7,spec.cfg),sampler_name:quality?"euler":"dpmpp_2m",scheduler:quality?"normal":"karras",denoise:Math.max(0.15,Math.min(0.85,Number(denoise)||0.44)),model,positive:["2",0],negative:["3",0],latent_image:["4",0]}},
+      "6":{class_type:"VAEDecodeTiled",inputs:{samples:["5",0],vae:["1",2],tile_size:512,overlap:64,temporal_size:64,temporal_overlap:8}},
     };
     if(quality){
       workflow["8"]={class_type:"ModelSamplingDiscrete",inputs:{model:["1",0],sampling:"v_prediction",zsnr:true}};
@@ -297,7 +287,7 @@ export class ComfyUIImageRuntime {
       workflow["10"]={class_type:"ImageUpscaleWithModel",inputs:{upscale_model:["9",0],image:["6",0]}};
       workflow["11"]={class_type:"ImageScale",inputs:{image:["10",0],upscale_method:"lanczos",width:finalWidth,height:finalHeight,crop:"disabled"}};
       workflow["7"]={class_type:"SaveImage",inputs:{filename_prefix:"DailyAgent-Edit-HQ",images:["11",0]}};
-    }else workflow["7"]={class_type:"SaveImage",inputs:{filename_prefix:photo?"DailyAgent-Photo-Edit":"DailyAgent-Edit",images:["6",0]}};
+    }else workflow["7"]={class_type:"SaveImage",inputs:{filename_prefix:"DailyAgent-Photo-Edit",images:["6",0]}};
     return workflow;
   }
   async uploadSourceImage(encoded) {
@@ -370,11 +360,9 @@ export class ComfyUIImageRuntime {
       fs.writeFileSync(file, bytes);
       const outputSpec=this.profile==='quality'
         ?{...spec,width:Math.min(1792,Math.round(spec.width*1.5/64)*64),height:Math.min(1792,Math.round(spec.height*1.5/64)*64),profile:'quality',sampler_name:'euler',scheduler:'normal'}
-        :this.profile==='photo'
-          ?(/pornmaster/i.test(path.basename(this.checkpoint))
+        :(/pornmaster/i.test(path.basename(this.checkpoint))
             ?{...spec,steps:Math.max(28,spec.steps),cfg:Math.min(6,spec.cfg),sampler_name:'euler_ancestral',scheduler:'sgm_uniform',profile:'photo'}
-            :{...spec,steps:Math.max(28,spec.steps),cfg:Math.min(7,spec.cfg),sampler_name:'dpmpp_2m',scheduler:'karras',profile:'photo'})
-          :{...spec,profile:'fast'};
+            :{...spec,steps:Math.max(28,spec.steps),cfg:Math.min(7,spec.cfg),sampler_name:'dpmpp_2m',scheduler:'karras',profile:'photo'});
       return { file, bytes, spec:outputSpec, prompt_id: promptId };
     }
     throw Error("生圖逾時，已中止等待。");

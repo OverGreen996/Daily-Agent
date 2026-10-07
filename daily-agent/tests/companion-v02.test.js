@@ -10,10 +10,6 @@ import { EnvironmentWatch } from "../idle/EnvironmentWatch.js";
 import { SpeakDecisionEngine } from "../idle/SpeakDecisionEngine.js";
 import { companionEvent } from "../core/CompanionEvents.js";
 import { IdleCompanion } from "../idle/IdleCompanion.js";
-import {
-  SearXNGProvider,
-  LightSearchBrowser,
-} from "../browser/SearXNGProvider.js";
 import { AgentCore } from "../core/AgentCore.js";
 import { groundEventText } from "../idle/EventNarration.js";
 const bus = { publish() {} };
@@ -332,41 +328,6 @@ test("rejected autonomous phrases cannot retry CPU generation on every watcher t
   await c.tick(3600000);
   await c.tick(3600000);
   assert.equal(calls.filter((c) => c === "CPU chat").length, 1);
-});
-test("SearXNG is opt-in, uses JSON, reads max three pages and closes ephemeral browser", async () => {
-  await assert.rejects(
-    () => new SearXNGProvider().search("test"),
-    /DAILY_SEARXNG_URL/,
-  );
-  let visited = 0,
-    closed = 0;
-  const provider = new SearXNGProvider({
-    endpoint: "http://127.0.0.1:8888",
-    fetcher: async (url) => {
-      assert.equal(url.searchParams.get("format"), "json");
-      return {
-        ok: true,
-        json: async () => ({
-          results: Array.from({ length: 8 }, (_, i) => ({
-            url: `https://example${i}.com/${i}`,
-            content: "test",
-          })),
-        }),
-      };
-    },
-  });
-  const browser = new LightSearchBrowser(provider, {
-    open: async (url) => {
-      visited++;
-      return { url, body: "read page" };
-    },
-    close: async () => {
-      closed++;
-    },
-  });
-  assert.equal((await browser.search("test", { limit: 10 })).results.length, 3);
-  assert.equal(visited, 3);
-  assert.equal(closed, 1);
 });
 test("simple weather question remains Idle and never calls wake", async () => {
   const saved = [],

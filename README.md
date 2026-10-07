@@ -23,7 +23,7 @@
 > **第一次來，只下載 Windows EXE。** 雙擊 → 自動準備基本模型 → 開始聊天。手機 APK 獨立下載；語音、生圖等需要時再補裝，搜尋在設定內填入 API 金鑰。
 
 > [!NOTE]
-> **新版搜尋說明適用本機待發布版。** 2026-10-05 已完成本機重裝與驗證，搜尋改用 Exa／Tavily／Firecrawl API。GitHub 公開的 Windows release 12 與原始碼尚未同步這次程式改版；本次先更新文件，下載檔案仍以「版本與更新」列出的公開版本為準。
+> **Windows release 13：搜尋改用自己的 API。** 聊天與搜尋問題先經 Qwen 理解，再按需要查詢 Exa／Tavily／Firecrawl；金鑰在設定中填入，模型與資料保存在自己的電腦。
 
 ## 功能展示
 
@@ -155,7 +155,7 @@
 PET 生成 → 下載完整圖集／素材 ZIP → 預覽修正版 → 匯入安裝版 → 選新外觀
 ```
 
-**[下載 PET 快速匯入工具](https://github.com/OverGreen996/Daily-Agent/releases/download/pet-import-v1.0.0-20261005/DailyAgent-PET-Import.zip)** · **[GPT PET 生成與匯入教學](daily-agent/desktop/PET-QUICK-IMPORT.md)**
+**[下載 PET 快速匯入工具](https://github.com/OverGreen996/Daily-Agent/releases/download/pet-import-v1.0.2-20261007/DailyAgent-PET-Import.zip)** · **[GPT PET 生成與匯入教學](daily-agent/desktop/PET-QUICK-IMPORT.md)**
 
 解壓後雙擊 `DailyAgent-PET-Import.exe`，不需編譯。原圖解析度與檔案位元組保留；可匯出安裝包分享。預設寫入 **已安裝 Daily Agent 的寵物素材庫**，保留其他寵物與記憶。
 
@@ -204,14 +204,13 @@ PET 生成 → 下載完整圖集／素材 ZIP → 預覽修正版 → 匯入安
 
 ## 版本與更新
 
-2026-10-05 核對的版本與發布狀態：
+2026-10-07 的公開版本：
 
 | 項目 | 目前版本 | 下載／說明 |
 | --- | --- | --- |
-| Windows 安裝包 | **0.2.2 · release 12** | [發布頁](https://github.com/OverGreen996/Daily-Agent/releases/tag/v0.2.2-release-20261003-12) · [校驗值](https://github.com/OverGreen996/Daily-Agent/releases/latest/download/SHA256SUMS.txt) |
+| Windows 安裝包 | **0.2.2 · release 13** | [發布頁](https://github.com/OverGreen996/Daily-Agent/releases/tag/v0.2.2-release-20261007-13) · [校驗值](https://github.com/OverGreen996/Daily-Agent/releases/latest/download/SHA256SUMS.txt) |
 | Android 桌寵 | **0.1.0-preview.10 · versionCode 10** | [APK 發布頁](https://github.com/OverGreen996/Daily-Agent/releases/tag/android-preview-10) |
-| 本機待發布版 | **0.2.2 · search-independent local 5** | 已重新安裝並核驗；尚未上傳公開安裝包或對應程式碼 |
-| 公開原始碼 | **`codex/initial-release`** | 含發行後改動；本機待發布版另待同步 |
+| 公開原始碼 | **`codex/initial-release`** | 與本次發行同步，包含搜尋 API、獨立架構與 PET 路徑修正 |
 
 **一般使用者下載 EXE，開發者才選原始碼。** GitHub Source code ZIP 不是可安裝版本；文件與原始碼更新不會自動替換公開 EXE／APK。[更新紀錄 →](daily-agent/CHANGELOG.md)
 
@@ -295,7 +294,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Open-DailyManager.ps1
 
 ### 預覽版的驗證範圍
 
-Windows x64，RTX 3080 Ti 12 GB。2026-10-05 本機待發布版逐項測試 **269/269 通過**，完成安裝包解出檔案校驗、重新安裝、離線功能及搜尋設定與重啟測試；Qwen 本機推理實測成功。搜尋輪替使用模擬 API 驗證，尚未驗證真實帳戶的額度與回覆品質。
+Windows x64，RTX 3080 Ti 12 GB。本版逐項測試 **269/269 通過**，並驗證安裝包解出檔案校驗、全新安裝、升級、回復、離線功能及搜尋設定與重啟；Qwen 本機推理另於本機配置實測成功。搜尋輪替使用模擬 API 驗證，尚未驗證真實帳戶的額度與回覆品質。預設併行測試曾出現 Google 模擬回呼連線中斷，詳見[驗證紀錄](daily-agent/VALIDATION.md)。
 
 Windows 安裝器尚未簽章；Android 實機觸控、權限、背景耗電，以及真實 Google 帳號備份與 PocketDrop Room 尚待完整驗收。[已測項目與界線 →](daily-agent/VALIDATION.md)
 

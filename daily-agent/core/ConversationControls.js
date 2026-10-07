@@ -145,7 +145,11 @@ export async function conversationControl(agent, text, command, request = {}) {
     }
     if (command.action === "search_status") {
       const s = await agent.status();
-      content = `一般搜尋：${s.search.provider}。\n陌生軟體查詢：${s.idleSearch.provider}，${s.settings.lightLookup && s.settings.perception ? "已啟用" : "目前關閉"}。\n${s.search.paid === false ? "目前一般搜尋不使用付費 API。" : "一般搜尋依目前供應者設定執行。"}\n查過的軟體會保存在記憶；網站要求驗證時會略過，不把驗證頁當答案。`;
+      const search = s.search || {};
+      const reasons = {ready:"可用",retry_ready:"可重試",disabled:"關閉",missing_key:"未填金鑰",auth:"金鑰無效",key_budget:"金鑰額度用盡",quota:"達到用量上限",rate_limit:"暫時限流",paid_plan:"需要付費方案",unavailable:"暫時無法使用"};
+      const providers = (search.providers || []).map(p =>
+        `${p.name}：${reasons[p.reason] || "暫停或等待重試"}；本機估算 ${p.reservedUsage ?? 0} / ${p.cap ?? "未設定"} ${p.unit || ""}`);
+      content = `一般搜尋：${search.configured ? "已設定 API 輪替，按以下順序嘗試" : "尚未啟用，請在搜尋設定填入金鑰並儲存"}。\n${providers.join("\n")}\n搜尋 API 可能計費，用量為本機估算，實際額度以供應者帳號為準。\n背景陌生軟體查詢目前關閉，不會自動消耗搜尋額度。`;
     }
     if (command.action === "setting") {
       if (agent.modules)

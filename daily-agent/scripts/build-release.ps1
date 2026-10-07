@@ -20,7 +20,7 @@ if($LASTEXITCODE -ne 0){throw 'Installer compilation failed'}
 $base='https://github.com/'+$Repository+'/releases/download/v'+$Version+'/'
 @{schema=1;channel='stable';windows=@{version=$Version;url=$base+'DailyAgent-Windows.zip';sha256=$zipHash;size=(Get-Item -LiteralPath $zip).Length};android=$android} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $out 'update.json') -Encoding UTF8
 Copy-Item -LiteralPath (Join-Path $root 'daily-agent\deploy\RELEASE-README.md') -Destination (Join-Path $out 'README.txt')
-foreach($doc in @('使用教學.md','對話指令.md','寵物皮膚規格.md','動畫圖匯入教學.md','XNG接入教學.md','GoogleDrive備份教學.md')){Copy-Item -LiteralPath (Join-Path $root ('daily-agent\deploy\'+$doc)) -Destination $out}
-Compress-Archive -LiteralPath (Join-Path $out 'DailyAgent-Setup.exe'),(Join-Path $out 'README.txt'),(Join-Path $out '使用教學.md'),(Join-Path $out '對話指令.md'),(Join-Path $out '寵物皮膚規格.md'),(Join-Path $out '動畫圖匯入教學.md'),(Join-Path $out 'XNG接入教學.md'),(Join-Path $out 'GoogleDrive備份教學.md') -DestinationPath (Join-Path $out 'DailyAgent-Installer.zip')
+foreach($doc in @('使用教學.md','對話指令.md','寵物皮膚規格.md','動畫圖匯入教學.md','GoogleDrive備份教學.md','搜尋API與輪替教學.md')){Copy-Item -LiteralPath (Join-Path $root ('daily-agent\deploy\'+$doc)) -Destination $out}
+Compress-Archive -LiteralPath (Join-Path $out 'DailyAgent-Setup.exe'),(Join-Path $out 'README.txt'),(Join-Path $out '使用教學.md'),(Join-Path $out '對話指令.md'),(Join-Path $out '寵物皮膚規格.md'),(Join-Path $out '動畫圖匯入教學.md'),(Join-Path $out 'GoogleDrive備份教學.md'),(Join-Path $out '搜尋API與輪替教學.md') -DestinationPath (Join-Path $out 'DailyAgent-Installer.zip')
 Get-ChildItem -LiteralPath $out -File | Where-Object Name -ne 'SHA256SUMS.txt' | ForEach-Object {((Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())+'  '+$_.Name} | Set-Content -LiteralPath (Join-Path $out 'SHA256SUMS.txt') -Encoding UTF8
 Write-Output $out

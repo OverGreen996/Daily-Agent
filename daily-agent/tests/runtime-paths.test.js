@@ -26,3 +26,21 @@ test('Node and PowerShell use shared installed assets without junctions and reje
     assert.throws(()=>getRuntimeDirectory(root),/Invalid/);
   }finally{fs.rmSync(install,{recursive:true,force:true});}
 });
+
+test('packaged-host physical installation aliases work outside the logical path',()=>{
+  const install=fs.mkdtempSync(path.join(os.tmpdir(),'daily-physical-path-'));
+  const root=path.join(install,'releases','physical-test');
+  fs.mkdirSync(root,{recursive:true});
+  const marker=path.join(install,'.daily-install.json');
+  try{
+    fs.writeFileSync(marker,JSON.stringify({kind:'DailyAgentInstallation',root:path.join(install,'unavailable-logical-path'),physicalRoot:install}));
+    assert.equal(getRuntimeDirectory(root),path.join(install,'runtime'));
+    if(process.platform==='win32'){
+      const quote=s=>"'"+s.replaceAll("'","''")+"'";
+      const result=spawnSync('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-Command',`. ${quote(path.resolve('../Daily-SetupState.ps1'))};$ErrorActionPreference='Stop';Get-DailyRuntimePath ${quote(root)}`],{windowsHide:true,encoding:'utf8'});
+      assert.equal(result.status,0,result.stderr);assert.equal(result.stdout.trim(),path.join(install,'runtime'));
+    }
+    fs.writeFileSync(marker,JSON.stringify({kind:'DailyAgentInstallation',root:path.dirname(install),physicalRoot:path.dirname(install)}));
+    assert.throws(()=>getRuntimeDirectory(root),/Invalid/);
+  }finally{fs.rmSync(install,{recursive:true,force:true});}
+});

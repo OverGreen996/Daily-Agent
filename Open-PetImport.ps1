@@ -1,11 +1,21 @@
-﻿param([string]$Source,[switch]$UseSourceLibrary)
+﻿param([string]$Source,[switch]$UseSourceLibrary,[switch]$CheckOnly)
 $ErrorActionPreference='Stop'
 try {
   if(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'vendor\node\node.exe')){$env:PATH=(Join-Path $PSScriptRoot 'vendor\node')+';'+$env:PATH}
-  # Compile the local tool, but target the installed app's library when available.
-  $exe=@(& (Join-Path $PSScriptRoot 'daily-agent\desktop\Build-Pet.ps1'))[-1]
   . (Join-Path $PSScriptRoot 'Daily-SetupState.ps1')
   $libraryRoot=Get-DailyPetProjectRoot $PSScriptRoot -UseSourceLibrary:$UseSourceLibrary -RequireInstalled
+  $install=Split-Path (Split-Path $libraryRoot -Parent) -Parent
+  $standalone=Join-Path $install 'tools\pet-import\DailyAgent-PET-Import.exe'
+  if(!$UseSourceLibrary -and (Test-Path -LiteralPath $standalone)){
+    if($CheckOnly){Write-Output $standalone;Write-Output $libraryRoot;return}
+    $toolArgs=@();if($Source){$toolArgs+=('"'+(Resolve-Path -LiteralPath $Source).Path.TrimEnd('\')+'"')}
+    $start=@{FilePath=$standalone};if($toolArgs.Count){$start.ArgumentList=$toolArgs}
+    Start-Process @start | Out-Null
+    return
+  }
+  # Compile only when the standalone tool is unavailable or source mode is explicit.
+  if($CheckOnly){Write-Output $libraryRoot;return}
+  $exe=@(& (Join-Path $PSScriptRoot 'daily-agent\desktop\Build-Pet.ps1'))[-1]
   if(Test-Path -LiteralPath (Join-Path $libraryRoot 'vendor\node\node.exe')){$env:PATH=(Join-Path $libraryRoot 'vendor\node')+';'+$env:PATH}
   $args=@(('"'+$libraryRoot+'"'),'http://127.0.0.1:3210','--pet-quick-import')
   if($Source){$resolved=(Resolve-Path -LiteralPath $Source).Path.TrimEnd('\');$args+=('"'+$resolved+'"')}

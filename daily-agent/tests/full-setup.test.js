@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-const files=['Setup-DailyAgent.ps1','Setup-Kokoro.ps1','Setup-SpeechRecognition.ps1','Setup-Browser.ps1','Setup-ImageGeneration.ps1','Setup-MobileBridge.ps1','Setup-LocalSearch.ps1'];
+const files=['Setup-DailyAgent.ps1','Setup-Kokoro.ps1','Setup-SpeechRecognition.ps1','Setup-Browser.ps1','Setup-ImageGeneration.ps1','Setup-MobileBridge.ps1'];
 test('full setup stays read-only in check mode and recovers a failed stage without deleting assets', {skip:process.platform!=='win32'},()=>{
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'daily-full-setup-'));
   const script=path.join(dir,'Setup-All-DailyAgent.ps1');

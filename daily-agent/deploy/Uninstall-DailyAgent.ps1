@@ -9,7 +9,9 @@ $root=[IO.Path]::GetFullPath($InstallRoot).TrimEnd('\')
 $marker=Join-Path $root '.daily-install.json'
 if(!(Test-Path -LiteralPath $marker)){throw 'Not a marked Daily Agent installation.'}
 $record=Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
-if($record.kind -ne 'DailyAgentInstallation' -or $record.root -ne $root){throw 'Installation marker does not match this directory.'}
+$matchingRoot=[string]::Equals($record.root,$root,[StringComparison]::OrdinalIgnoreCase)
+if($record.physicalRoot){$matchingRoot=$matchingRoot -or [string]::Equals($record.physicalRoot,$root,[StringComparison]::OrdinalIgnoreCase)}
+if($record.kind -ne 'DailyAgentInstallation' -or !$matchingRoot){throw 'Installation marker does not match this directory.'}
 $ancestor=Get-Item -LiteralPath $root -Force
 while($ancestor){if($ancestor.Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Installation root must not be reached through a junction.'};$ancestor=$ancestor.Parent}
 if(!$NonInteractive){
@@ -46,12 +48,6 @@ if($listener){$owner=Get-Process -Id $listener.OwningProcess -ErrorAction Silent
  Start-Sleep -Milliseconds 800
 }}
 foreach($process in @(Get-Process | Where-Object {$_.Id -ne $PID -and $_.Path -and (Is-OwnedPath $_.Path)})){Stop-Process -Id $process.Id -Force -ErrorAction Stop}
-if(Test-Path -LiteralPath (Join-Path $root 'runtime\searxng')){
- if(!(Get-Command docker.exe -ErrorAction SilentlyContinue)){throw 'Start Docker Desktop before uninstalling the local search service.'}
- $ids=@(& docker.exe ps -aq --filter label=com.docker.compose.project.working_dir)
- if($LASTEXITCODE -ne 0){throw 'Start Docker Desktop and retry to remove this installation search container.'}
- foreach($id in $ids){$container=(& docker.exe inspect $id | ConvertFrom-Json)[0];$work=$container.Config.Labels.'com.docker.compose.project.working_dir';if($work -and (Is-OwnedPath $work)){& docker.exe rm -f -v $id | Out-Null;if($LASTEXITCODE -ne 0){throw 'Cannot remove owned search container.'}}}
-}
 # Preserve only the SQLite memory database and its WAL sidecars, not credentials or generated media.
 $data=Join-Path $root 'data'
 if((Test-Path -LiteralPath $data) -and ((Get-Item -LiteralPath $data -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'Memory directory is a link. Uninstall stopped.'}

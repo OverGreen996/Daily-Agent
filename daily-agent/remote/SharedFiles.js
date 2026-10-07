@@ -37,7 +37,7 @@ export class SharedFiles extends FileTools {
     const real = await super.allowed(file);
     if (
       real.split(/[\\/]/).some((p) => forbidden.test(p)) ||
-      /\.(pem|key|pfx|p12|kdbx|sqlite|db)$/i.test(real)
+      /\.(pem|key|pfx|p12|kdbx|dpapi|sqlite(?:-wal|-shm)?|db)$/i.test(real)
     )
       throw Error("此檔案類型不提供遠端讀取。");
     return real;

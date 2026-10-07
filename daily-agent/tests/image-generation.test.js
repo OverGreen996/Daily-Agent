@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {parseImageGenerationRequest,parseImageModeCommand,isImageGenerationFollowup,parseAttachedImageEdit,imageEditDenoise,imageDimensions,fitImageDimensions,enforceRequestedImageConcepts,assertImagePolicy,normalizeGenerationSpec,mergeContinuationSpec,ComfyUIImageRuntime} from '../models/ImageGeneration.js';
 
 test('conversation image intent is explicit and does not capture image questions',()=>{
-  assert.equal(parseImageModeCommand('生圖模式'),'enter');
-  assert.equal(parseImageModeCommand('開啟生圖模式'),'enter');
+  assert.equal(parseImageModeCommand('生圖模式'),'enter_quality');
+  assert.equal(parseImageModeCommand('開啟生圖模式'),'enter_quality');
   assert.equal(parseImageModeCommand('高畫質生圖模式'),'enter_quality');
-  assert.equal(parseImageModeCommand('快速生圖模式'),'enter_fast');
+  assert.equal(parseImageModeCommand('快速生圖模式'),'enter_quality');
   assert.equal(parseImageModeCommand('真人模式'),'enter_photo');
   assert.equal(parseImageModeCommand('進入真人寫真模式'),'enter_photo');
   assert.equal(parseImageModeCommand('動漫模式'),'enter_quality');
@@ -162,7 +162,7 @@ test('Comfy workflow uses configured checkpoint and one image',()=>{
   const w=r.workflow(normalizeGenerationSpec({prompt:'fox',seed:7}));
   assert.equal(w['1'].inputs.ckpt_name,'model.safetensors');
   assert.equal(w['4'].inputs.batch_size,1);
-  assert.equal(w['5'].inputs.model[0],'1');
+  assert.equal(w['5'].inputs.model[0],'8');
   assert.equal(w['7'].class_type,'SaveImage');
 });
 
@@ -183,6 +183,20 @@ test('quality profile applies v-prediction and learned anime super-resolution',(
   assert.equal(w['11'].inputs.upscale_method,'lanczos');
   assert.deepEqual(w['7'].inputs.images,['11',0]);
   assert.equal(w['2'].inputs.text,'1girl');
+});
+
+test('default and retired fast profiles always use anime generation and editing',()=>{
+  const r=new ComfyUIImageRuntime({root:'C:/runtime',checkpoint:'C:/runtime/retired.safetensors',qualityCheckpoint:'C:/runtime/vpred.safetensors',photoCheckpoint:'C:/runtime/photo.safetensors',outputDir:'C:/out'});
+  const spec=normalizeGenerationSpec({prompt:'a fox in a forest',seed:7});
+  assert.equal(r.profile,'quality');
+  assert.equal(r.workflow(spec)['1'].inputs.ckpt_name,'vpred.safetensors');
+  for(const legacy of ['fast','unknown',undefined]){
+    r.setProfile('photo');r.setProfile(legacy);
+    assert.equal(r.profile,'quality');
+    assert.equal(r.workflow(spec)['1'].inputs.ckpt_name,'vpred.safetensors');
+    assert.equal(r.editWorkflow(spec,'fox.png')['5'].inputs.model[0],'8');
+    assert.equal(r.editWorkflow(spec,'fox.png')['9'].class_type,'UpscaleModelLoader');
+  }
 });
 
 test('quality image edit encodes the uploaded image and preserves it with bounded denoise',()=>{

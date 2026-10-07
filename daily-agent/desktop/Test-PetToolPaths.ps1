@@ -36,5 +36,8 @@ foreach($file in @('Open-PetImport.ps1','Open-PetEditor.ps1')){
  if($errors.Count){throw ($file+' parse failed')}
 }
 $checks+='both-launchers-parse'
+$checkResult=@(& (Join-Path $project 'Open-PetImport.ps1') -UseSourceLibrary -CheckOnly)
+if($checkResult.Count -ne 1 -or $checkResult[0] -ne $project){throw 'Read-only source launcher check compiled or redirected the tool'}
+$checks+='read-only-launcher-check-does-not-compile-or-open-ui'
 @{passed=$true;checks=$checks} | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $out 'report.json') -Encoding UTF8
 Write-Output ('PASS: '+$checks.Count+' checks; '+$out)

@@ -15,7 +15,6 @@ $catalog=@(
  @{id='browser';name='網頁操作';hint='自動開網頁、讀取頁面；優先沿用 Windows Edge。'},
  @{id='anime';name='畫動漫圖片';hint='約 7 GB 模型，另需生圖共用環境。'},
  @{id='photo';name='畫寫實圖片';hint='約 7 GB 模型，與動漫共用環境；建議 NVIDIA 12 GB 顯存。'},
- @{id='search';name='加強網路搜尋（XNG）';hint='既有 XNG 沿用。首次部署需 Docker／WSL，可能要求重開機。'},
  @{id='mobile';name='在外面連回電腦';hint='下載 Cloudflare 工具，之後使用自己的帳號設定。'}
 )
 $selected=@('core')
@@ -105,26 +104,8 @@ $moduleList=New-Object Windows.Forms.CheckedListBox;$moduleList.SetBounds(12,10,
 $moduleInfo=Label-On $modulesTab '' 8 300 584 70
 $moduleSave=Button-On $modulesTab '儲存模組設定' 4 378 190;$moduleSave.Primary=$true
 $moduleRefresh=Button-On $modulesTab '檢查運行狀態' 207 378 190
-$xngPlugin=Button-On $modulesTab 'XNG 插件更新' 410 378 190
-$xngPlugin.add_Click({
- if($SelfTest){return}
- try{
-  $locationFile=Join-Path $runtime 'xng-location.json'
-  $location=$env:DAILY_XNG_ROOT
-  if(!$location){try{$location=(Get-Content -LiteralPath $locationFile -Raw -Encoding UTF8|ConvertFrom-Json).root}catch{}}
-  if(!$location){$location=Join-Path (Split-Path $root -Parent) 'XNG'}
-  if(!(Test-Path -LiteralPath (Join-Path $location 'Manage-XNGPlugin.ps1'))){
-   $folder=New-Object Windows.Forms.FolderBrowserDialog;$folder.Description='選擇已安裝獨立 XNG 的資料夾'
-   try{if($folder.ShowDialog($form) -ne 'OK'){return};$location=$folder.SelectedPath}finally{$folder.Dispose()}
-  }
-  $location=[IO.Path]::GetFullPath($location)
-  $file=Join-Path $location 'Manage-XNGPlugin.ps1'
-  if(!(Test-Path -LiteralPath $file) -or !(Test-Path -LiteralPath (Join-Path $location 'plugins\PluginManager.mjs'))){throw '此資料夾尚未安裝 XNG 插件管理工具，請先依 XNG 接入教學安裝。'}
-  $null=New-Item -ItemType Directory -Path $runtime -Force
-  [IO.File]::WriteAllText($locationFile,(@{root=$location}|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
-  $null=Start-Process -FilePath 'powershell.exe' -ArgumentList ('-NoProfile -ExecutionPolicy Bypass -File "'+$file+'"') -WorkingDirectory $location -WindowStyle Hidden -PassThru
- }catch{$moduleInfo.Text=$_.Exception.Message}
-})
+$searchSettings=Button-On $modulesTab '搜尋 API 與輪替' 410 378 190
+$searchSettings.add_Click({try{$base=Invoke-LocalAction '';Start-Process ($base+'/search-settings')}catch{$moduleInfo.Text=$_.Exception.Message}})
 $script:moduleRows=@()
 function Update-InstallPlan([int]$Changed=-1,[bool]$Checked=$false){
  $ids=@('core')

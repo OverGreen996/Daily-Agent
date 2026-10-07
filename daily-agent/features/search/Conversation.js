@@ -1,9 +1,7 @@
-// Existing XNG evidence and game-query logic is reused without changes.
+// Provider-independent response formatting.
 export {
   withSearchSources,
   searchContext,
-  searchEvidencePayload,
-  needsCurrentSearch,
-  verifiedSteamPriceReply,
+  searchResultsPayload,
+  emptySearchReply,
 } from "../../core/SearchReply.js";
-export { isGameGuideQuery } from "../../browser/GameSearch.js";

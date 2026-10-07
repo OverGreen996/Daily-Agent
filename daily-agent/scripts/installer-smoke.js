@@ -10,8 +10,8 @@ const install=()=>run(path.join(stage,'Install-DailyAgent.ps1'),['-Destination',
 try{
   install();const dataFile=path.join(destination,'data','preserved.txt');fs.writeFileSync(dataFile,'user memory MUST remain');const before=createHash('sha256').update(fs.readFileSync(dataFile)).digest('hex');
   const first=manifest.version;install();assert.equal(createHash('sha256').update(fs.readFileSync(dataFile)).digest('hex'),before);
-  fs.writeFileSync(path.join(destination,'releases',first,'daily-agent','.env.local'),'DAILY_SEARCH_PROVIDER=searxng\n');manifest.version+='-update-test';fs.writeFileSync(manifestPath,JSON.stringify(manifest));install();assert.equal(JSON.parse(fs.readFileSync(path.join(destination,'current.json'),'utf8').replace(/^\uFEFF/,'' )).previous,first);
-  assert.equal(fs.readFileSync(path.join(destination,'releases',manifest.version,'daily-agent','.env.local'),'utf8'),'DAILY_SEARCH_PROVIDER=searxng\n');
+  fs.writeFileSync(path.join(destination,'releases',first,'daily-agent','.env.local'),'DAILY_SEARCH_PROVIDER=disabled\n');manifest.version+='-update-test';fs.writeFileSync(manifestPath,JSON.stringify(manifest));install();assert.equal(JSON.parse(fs.readFileSync(path.join(destination,'current.json'),'utf8').replace(/^\uFEFF/,'' )).previous,first);
+  assert.equal(fs.readFileSync(path.join(destination,'releases',manifest.version,'daily-agent','.env.local'),'utf8'),'DAILY_SEARCH_PROVIDER=disabled\n');
   const release=run(path.join(destination,'Launch-DailyAgent.ps1'),['-Rollback','-NoLaunch']).trim();assert.ok(release.endsWith(first));assert.equal(createHash('sha256').update(fs.readFileSync(dataFile)).digest('hex'),before);
   const bad=manifest.files[0];const saved=bad.sha256;bad.sha256='0'.repeat(64);manifest.version+='-bad';fs.writeFileSync(manifestPath,JSON.stringify(manifest));assert.throws(install);bad.sha256=saved;
   const report={passed:true,destination,install:true,reinstallContinues:true,update:true,rollback:true,dataPreserved:true,tamperedPackageRejected:true};fs.writeFileSync(path.join(destination,'report.json'),JSON.stringify(report,null,2));console.log(report);

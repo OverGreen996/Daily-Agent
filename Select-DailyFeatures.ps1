@@ -10,7 +10,6 @@ $items=@(
  @{id='browser';label='瀏覽器工具：開啟及操作網頁'},
  @{id='anime';label='動漫生圖：約 7 GB 模型，另需 ComfyUI 環境'},
  @{id='photo';label='真人生圖：約 7 GB 模型，與動漫共用 ComfyUI'},
- @{id='search';label='網路搜尋：安裝 Docker／WSL 與 SearXNG'},
  @{id='mobile';label='外網手機連線：下載 Cloudflare 工具，需自己的帳號設定'}
 )
 $selected=@('core')
@@ -25,7 +24,7 @@ $list.SetBounds(20,72,640,220);$list.CheckOnClick=$true
 foreach($item in $items){$null=$list.Items.Add($item.label,($selected -contains $item.id))}
 $list.add_ItemCheck({param($sender,$eventArgs)if($eventArgs.Index -eq 0){$eventArgs.NewValue=[Windows.Forms.CheckState]::Checked}})
 $note=New-Object Windows.Forms.Label
-$note.SetBounds(20,305,640,65);$note.Text="生圖目前以 NVIDIA 12 GB 顯存為基準。兩種生圖共用環境，僅下載各自選中的模型。`n搜尋可能需要管理員授權、Docker 條款及重開機。`n手機在同一 Wi-Fi 配對及 PocketDrop 不需要額外下載 Cloudflare。"
+$note.SetBounds(20,305,640,65);$note.Text="生圖目前以 NVIDIA 12 GB 顯存為基準。兩種生圖共用環境，僅下載各自選中的模型。`n搜尋請在模組管理器的「搜尋 API 與輪替」設定自己的金鑰。`n手機在同一 Wi-Fi 配對及 PocketDrop 不需要額外下載 Cloudflare。"
 $ok=New-Object Windows.Forms.Button
 $ok.SetBounds(420,380,240,36);$ok.Text='下載並配置勾選的功能';$ok.DialogResult='OK'
 $cancel=New-Object Windows.Forms.Button

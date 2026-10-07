@@ -17,7 +17,10 @@ static class PetImportLauncher {
     install=Path.GetFullPath(install).TrimEnd(Path.DirectorySeparatorChar);
     if(!File.Exists(Path.Combine(install,"current.json")))throw new Exception("請先安裝 Daily Agent，再開啟 PET 快速匯入工具。\n安裝下載：https://github.com/OverGreen996/Daily-Agent/releases/latest");
     var marker=Read(Path.Combine(install,".daily-install.json"));
-    if(Value(marker,"kind")!="DailyAgentInstallation"||!String.Equals(Path.GetFullPath(Value(marker,"root")).TrimEnd(Path.DirectorySeparatorChar),install,StringComparison.OrdinalIgnoreCase))throw new Exception("Daily Agent 安裝標記不正確，請修復安裝後再試。");
+    bool matchingRoot=String.Equals(Path.GetFullPath(Value(marker,"root")).TrimEnd(Path.DirectorySeparatorChar),install,StringComparison.OrdinalIgnoreCase);
+    string physicalRoot=Value(marker,"physicalRoot");
+    if(!String.IsNullOrWhiteSpace(physicalRoot))matchingRoot|=String.Equals(Path.GetFullPath(physicalRoot).TrimEnd(Path.DirectorySeparatorChar),install,StringComparison.OrdinalIgnoreCase);
+    if(Value(marker,"kind")!="DailyAgentInstallation"||!matchingRoot)throw new Exception("Daily Agent 安裝標記不正確，請修復安裝後再試。");
     var state=Read(Path.Combine(install,"current.json"));string version=Value(state,"current");
     if(Value(state,"dataFormat")!="1"||!Regex.IsMatch(version,"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,120}$"))throw new Exception("Daily Agent 版本資訊不正確，請修復安裝後再試。");
     string root=Path.Combine(install,"releases",version);
@@ -26,11 +29,17 @@ static class PetImportLauncher {
   }
   [STAThread] static int Main(string[] args){
     try{
+      string baseDir=AppDomain.CurrentDomain.BaseDirectory;
       string install=Convert.ToString(Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\DailyAgent","InstallLocation",null));
-      if(String.IsNullOrWhiteSpace(install))install=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DailyAgent");
+      string defaultInstall=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"DailyAgent");
+      if(String.IsNullOrWhiteSpace(install)||(!File.Exists(Path.Combine(install,"current.json"))&&File.Exists(Path.Combine(defaultInstall,"current.json"))))install=defaultInstall;
+      // Tools placed inside an installation follow that installation directly.
+      // This also works outside a packaged host's filesystem virtualization.
+      var own=Directory.GetParent(baseDir.TrimEnd(Path.DirectorySeparatorChar));
+      if(own!=null&&own.Name.Equals("tools",StringComparison.OrdinalIgnoreCase)&&own.Parent!=null&&File.Exists(Path.Combine(own.Parent.FullName,".daily-install.json")))install=own.Parent.FullName;
       bool verify=args.Length>1&&args[0]=="--verify-target";
       if(verify&&args.Length>2)install=args[2];
-      string root=InstalledRoot(install),baseDir=AppDomain.CurrentDomain.BaseDirectory;
+      string root=InstalledRoot(install);
       string executable=Path.Combine(baseDir,"tool","DailyPet.exe");
       var manifest=Read(Path.Combine(baseDir,"tool","manifest.json"));
       if(Hash(executable)!=Value(manifest,"sha256"))throw new Exception("工具檔案校驗失敗，請重新下載並完整解壓。");

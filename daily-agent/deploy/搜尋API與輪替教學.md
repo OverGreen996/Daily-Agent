@@ -1,6 +1,6 @@
 # 搜尋 API 與輪替
 
-> 本教學適用 2026-10-05 本機待發布版。GitHub 公開的 Windows release 12 與程式碼尚未同步這次改版；文件更新不會替換已發布的安裝包。
+> 本教學適用 Windows release 13（2026-10-07）及同步原始碼。已安裝者可使用 Windows 更新接口升級，金鑰與搜尋設定各自保存於自己的電腦。
 
 Daily Agent 使用 Exa Auto、Tavily Basic、Firecrawl Search 三個獨立搜尋服務。先用本機 Qwen 理解聊天問題，確定需要外部資料才查詢。一般聊天、記憶、行程與生圖不會因此多呼叫搜尋 API。
 

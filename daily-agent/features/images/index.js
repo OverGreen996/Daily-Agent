@@ -7,7 +7,6 @@ export function create({ config }) {
     path.join(config.imageRuntimeDir, "ComfyUI", "models", "checkpoints", name);
   const runtime = new ComfyUIImageRuntime({
     root: config.imageRuntimeDir,
-    checkpoint: checkpoint(config.imageCheckpoint),
     qualityCheckpoint: checkpoint(config.imageQualityCheckpoint),
     photoCheckpoint: checkpoint(config.imagePhotoCheckpoint),
     outputDir: path.join(config.dataDir, "generated-images"),

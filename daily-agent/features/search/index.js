@@ -1,72 +1,26 @@
-import { BrowserAgent } from "../../browser/BrowserAgent.js";
-import {
-  SearchService,
-  TavilySearchProvider,
-} from "../../browser/SearchProvider.js";
-import {
-  SearXNGProvider,
-  LightSearchBrowser,
-} from "../../browser/SearXNGProvider.js";
+import {BrowserAgent} from "../../browser/BrowserAgent.js";
+import path from 'node:path';
+import {SearchRouter} from '../../search/SearchRouter.js';
+import {EvidenceReader} from '../../search/EvidenceReader.js';
 import * as conversation from "./Conversation.js";
-import {XngHubClient} from '../../browser/XngHubClient.js';
-export function create({ config, memory, bus }) {
-  const engineHealth = new Map(),
-    searchCache = new Map();
-  const provider = () =>
-    new SearXNGProvider({
-      endpoint: config.searxngUrl,
-      engineHealth,
-      searchCache,
-    });
-  const localFullSearch = new LightSearchBrowser(
-    provider(),
-    new BrowserAgent({ idleMs: 1000 }),
-  );
-  const localIdleBrowser = new LightSearchBrowser(
-    provider(),
-    new BrowserAgent({ idleMs: 1000 }),
-  );
-  const fullSearch=config.searchProvider==='searxng'&&config.xngHubUrl?new XngHubClient({endpoint:config.xngHubUrl,fallback:localFullSearch}):localFullSearch;
-  const idleBrowser=config.xngHubUrl?new XngHubClient({endpoint:config.xngHubUrl,fallback:localIdleBrowser}):localIdleBrowser;
-  if (!["browser", "tavily", "searxng"].includes(config.searchProvider))
-    throw Error("不支援的 Search Provider");
-  const searchService =
-    config.searchProvider === "tavily"
-      ? new SearchService({
-          provider: new TavilySearchProvider({ apiKey: config.searchApiKey }),
-          db: memory.db,
-          monthlyLimit: config.searchMonthlyLimit,
-          bus,
-        })
-      : config.searchProvider === "searxng"
-        ? fullSearch
-        : null;
-  const browser = new BrowserAgent({
-    idleMs: config.browserIdleMs,
-    searchService,
-  });
-  return {
-    browser,
-    idleBrowser,
-    conversation,
-    routes: [
-      {
-        method: "GET",
-        path: "/",
-        handle: () =>
-          searchService?.status() || {
-            provider: "browser",
-            configured: true,
-            paid: false,
-          },
-      },
-    ],
-    async dispose() {
-      await Promise.allSettled([
-        browser.close(),
-        idleBrowser.close(),
-        fullSearch.close(),
-      ]);
-    },
+export function create({config,memory,bus}) {
+  const unavailable={
+    status(){return {provider:"disabled",configured:false,paid:false,state:"not_configured"};},
+    async search(){throw Object.assign(Error("搜尋尚未設定，請設定搜尋 API；聊天、記憶與其他功能仍可使用。"),{code:"SEARCH_NOT_CONFIGURED"});},
+    close(){}
+  };
+  const searchService=new SearchRouter({dir:config.searchDataDir||path.join(config.dataDir||path.join(process.cwd(),'data'),'search'),bus,reader:new EvidenceReader(),
+    legacyKeys:{exa:config.searchKeys?.exa||'',tavily:config.searchKeys?.tavily||config.searchApiKey||'',firecrawl:config.searchKeys?.firecrawl||''}});
+  const browser=new BrowserAgent({idleMs:config.browserIdleMs,searchService});
+  // Background activity never creates a search engine or spends API quota.
+  const idleBrowser=new BrowserAgent({idleMs:1000,searchService:unavailable});
+  return {browser,idleBrowser,conversation,
+    routes:[{method:"GET",path:"/",handle:()=>searchService.status()},
+      {method:'GET',path:'/settings',handle:()=>searchService.status()},
+      {method:'POST',path:'/settings',handle:data=>searchService.configure(data)},
+      {method:'POST',path:'/usage',handle:data=>searchService.refreshUsage(data.provider)},
+      {method:'POST',path:'/query',handle:data=>searchService.search(data.query,{limit:data.limit??3})},
+      {method:'POST',path:'/resume',handle:data=>searchService.resumeExa(data.confirmed)}],
+    async dispose(){await Promise.allSettled([browser.close(),idleBrowser.close()]);await searchService.close();}
   };
 }

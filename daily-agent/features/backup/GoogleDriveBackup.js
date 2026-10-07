@@ -68,7 +68,11 @@ export class GoogleDriveBackup {
   const challenge=createHash('sha256').update(verifier).digest('base64url');
   const flow={state,verifier,server:null,timer:null,used:false,generation};this.error=null;
   const server=http.createServer({maxHeaderSize:8192},async(req,res)=>{
-   const finish=(code,message)=>{res.writeHead(code,{'content-type':'text/plain; charset=utf-8','cache-control':'no-store','content-security-policy':"default-src 'none'"});res.end(message);};
+   const finish=(code,message)=>{
+    if(res.destroyed)return;
+    res.writeHead(code,{'content-type':'text/plain; charset=utf-8','cache-control':'no-store','connection':'close','content-security-policy':"default-src 'none'"});
+    return new Promise(resolve=>{res.once('finish',resolve);res.once('close',resolve);res.end(message);});
+   };
    let url;try {url=new URL(req.url,'http://127.0.0.1');} catch {return finish(400,'登入回呼格式不正確。');}
    const got=url.searchParams.get('state')||'';
    if(req.method!=='GET'||req.headers.host!==`127.0.0.1:${server.address()?.port}`||url.pathname!=='/oauth/callback')return finish(404,'找不到登入回呼。');
@@ -84,8 +88,8 @@ export class GoogleDriveBackup {
     if(generation!==this.generation||this.closed)throw Error('這次登入已取消。');
     this.account={client,refresh_token:token.refresh_token,email:typeof profile.email==='string'?profile.email.slice(0,250):null};
     this.store.save(this.account);this.access={value:token.access_token,expires:this.now()+Math.min(3600,Number(token.expires_in)||3600)*1000};
-    finish(200,'Google 登入完成。請回 Daily Agent 記憶宮殿按「立即備份」。');
-   } catch(e){this.error=e.message;finish(400,'登入未完成。請回 Daily Agent 查看原因並重試。');}
+    await finish(200,'Google 登入完成。請回 Daily Agent 記憶宮殿按「立即備份」。');
+   } catch(e){this.error=e.message;await finish(400,'登入未完成。請回 Daily Agent 查看原因並重試。');}
    finally {if(this.flow===flow)this.cancelLogin();}
   });
   server.maxConnections=4;flow.server=server;

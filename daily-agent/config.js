@@ -5,17 +5,17 @@ import { runtimePath } from "./core/RuntimePaths.cjs";
 export const root = path.dirname(fileURLToPath(import.meta.url));
 const localEnv = path.join(root, ".env.local");
 if (fs.existsSync(localEnv)) process.loadEnvFile(localEnv);
+const dataDir = process.env.DAILY_DATA || path.join(root, "data");
 export const config = {
   version:JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version,
   port: Number(process.env.DAILY_PORT || 3210),
-  dataDir: process.env.DAILY_DATA || path.join(root, "data"),
+  dataDir,
   timeZone: process.env.DAILY_TIMEZONE || Intl.DateTimeFormat().resolvedOptions().timeZone,
   modelUrl: process.env.OLLAMA_HOST_URL || "http://127.0.0.1:11435",
   imageRuntimeDir: process.env.DAILY_COMFY_DIR || runtimePath("ComfyUI_windows_portable"),
-  imageCheckpoint: process.env.DAILY_IMAGE_CHECKPOINT || "NoobAI-XL-v1.1.safetensors",
   imageQualityCheckpoint: process.env.DAILY_IMAGE_QUALITY_CHECKPOINT || "NoobAI-XL-Vpred-v1.0-cyberfix-perpendicular.safetensors",
   imagePhotoCheckpoint: process.env.DAILY_IMAGE_PHOTO_CHECKPOINT || "PornMaster-Pro-SDXL-V7-VAE.safetensors",
-  imageDefaultProfile: ['quality','photo'].includes(process.env.DAILY_IMAGE_DEFAULT_PROFILE) ? process.env.DAILY_IMAGE_DEFAULT_PROFILE : 'fast',
+  imageDefaultProfile: 'quality',
   imagePort: Number(process.env.DAILY_IMAGE_PORT || 8189),
   fullModel: "qwen3.5:4b",
   idleModel: "daily-qwen-idle:0.8b-q4",
@@ -24,8 +24,10 @@ export const config = {
   flushAt: 14336,
   idleAfterMs: 300000,
   browserIdleMs: 45000,
-  searchProvider: process.env.DAILY_SEARCH_PROVIDER || "browser",
+  searchDataDir: process.env.DAILY_SEARCH_DATA_DIR || path.join(dataDir, "search"),
+  searchProvider: process.env.DAILY_SEARCH_PROVIDER === "tavily" ? "tavily" : "disabled",
   searchApiKey: process.env.TAVILY_API_KEY || "",
+  searchKeys: {exa:process.env.EXA_API_KEY||'',tavily:process.env.TAVILY_API_KEY||'',firecrawl:process.env.FIRECRAWL_API_KEY||''},
   searchMonthlyLimit: Math.min(
     900,
     Math.max(0, Number(process.env.DAILY_SEARCH_MONTHLY_LIMIT || 900) || 0),
@@ -33,12 +35,10 @@ export const config = {
   fileRoots: [path.resolve(root, "..")],
   apps: { notepad: "notepad.exe", calculator: "calc.exe" },
   perception: true,
-  lightLookup: true,
+  lightLookup: false,
   lightPerception:false,
   memoryCompanion:true,
   screenVision:false,
-  searxngUrl: process.env.DAILY_SEARXNG_URL || "",
-  xngHubUrl: process.env.DAILY_XNG_HUB_URL || "",
   googleDriveClientId: process.env.DAILY_GOOGLE_CLIENT_ID || "",
   googleDriveClientSecret: process.env.DAILY_GOOGLE_CLIENT_SECRET || "",
   weatherEnabled: false,

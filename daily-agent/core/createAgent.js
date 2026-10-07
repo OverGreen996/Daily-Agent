@@ -14,7 +14,7 @@ import {
   setTokenCounter,
   tokens,
 } from "../memory/MemoryPalace.js";
-import { loadNativeTokenizer } from "../models/NativeTokenizer.js";
+import {resolveRuntimeConfig, readOptionalSettings} from './RuntimeConfig.js';
 import {
   ModelLifecycleManager,
   ModelRole,
@@ -24,18 +24,24 @@ import { EventBus } from "./EventBus.js";
 import { AgentCore } from "./AgentCore.js";
 import { ModuleHost } from "../modules/ModuleHost.js";
 import { moduleCatalog } from "../modules/catalog.js";
+import {moduleServices, bindAgentModules} from '../modules/Bindings.js';
 import {
   fallbackBrowser,
-  fallbackCompanion,
   fallbackEnvironment,
 } from "../modules/Fallbacks.js";
-function readSettings(file) {
-  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
-}
-function installedPlugins(settings) {
+function installedPlugins(settings, bus) {
   const directory = path.join(root, "plugins");
-  return (settings.plugins || [])
-    .filter((p) => p.enabled === true)
+  const reserved = new Set(moduleCatalog.map(m => m.id));
+  return (Array.isArray(settings.plugins) ? settings.plugins : [])
+    .filter((p) => p && typeof p === 'object' && p.enabled === true)
+    .filter(p => {
+      const valid = /^[a-z][a-z0-9-]{0,47}$/.test(p.id) && !reserved.has(p.id)
+        && typeof p.entry === 'string' && Array.isArray(p.requires || [])
+        && (p.requires || []).every(id => typeof id === 'string');
+      if (valid) reserved.add(p.id);
+      else bus.publish('warning', {code:'PLUGIN_REGISTRATION_INVALID', message:'有一筆插件登記無效或重複，已略過；請檢查 modules.json。'});
+      return valid;
+    })
     .map((p) => ({
       id: p.id,
       name: p.name || p.id,
@@ -54,11 +60,12 @@ function installedPlugins(settings) {
     }));
 }
 export async function createAgent(overrides = {}) {
-  const config = { ...defaults, ...overrides };
+  const config = resolveRuntimeConfig(defaults, overrides);
   fs.mkdirSync(config.dataDir, { recursive: true });
   const bus = new EventBus(path.join(config.dataDir, "events.jsonl"));
-  const environment = readSettings(
+  const environment = readOptionalSettings(
     path.join(config.dataDir, "environment-settings.json"),
+    bus,
   );
   for (const key of [
     "perception",
@@ -79,12 +86,13 @@ export async function createAgent(overrides = {}) {
       Math.max(600000, environment.weatherRefreshMs),
     );
   const settingsFile = path.join(config.dataDir, "modules.json");
-  const settings = readSettings(settingsFile);
+  const settings = readOptionalSettings(settingsFile, bus);
   config.modules = {
     ...(settings.enabled || {}),
     ...(overrides.modules || {}),
   };
   try {
+    const {loadNativeTokenizer} = await import('../models/NativeTokenizer.js');
     const tokenizer = loadNativeTokenizer(
       runtimePath("tokenizer"),
     );
@@ -126,7 +134,7 @@ export async function createAgent(overrides = {}) {
     await host.load(
       [
         ...moduleCatalog,
-        ...installedPlugins(settings),
+        ...installedPlugins(settings, bus),
         ...(overrides.plugins || []),
       ],
       {
@@ -141,24 +149,13 @@ export async function createAgent(overrides = {}) {
         fallbackBrowser: neutralBrowser,
       },
     );
-    if (!host.enabled("environment"))
-      Object.assign(config, {
-        perception: false,
-        lightPerception: false,
-        screenVision: false,
-        weatherEnabled: false,
-      });
-    if (!host.enabled("search")) config.lightLookup = false;
-    const env = host.get("environment") || neutralEnvironment,
-      browser = host.get("search")?.browser || neutralBrowser;
-    const companion =
-      host.get("companion")?.companion || fallbackCompanion(env, browser);
+    const fallbacks = {environment: neutralEnvironment, browser: neutralBrowser};
+    const {environment: env, browser, companion} = moduleServices(host, fallbacks);
     const models = {
       [ModelRole.FULL_LLM]: { runtime: full, gpu: true },
       [ModelRole.IDLE_LLM]: { runtime: idleRuntime, gpu: false },
     };
-    for (const id of host.order)
-      Object.assign(models, host.get(id)?.models || {});
+    Object.assign(models, host.modelDefinitions());
     const lifecycle = new ModelLifecycleManager({
       models,
       snapshotFile: path.join(config.dataDir, "runtime-state.json"),
@@ -199,6 +196,13 @@ export async function createAgent(overrides = {}) {
     agent.modules = host;
     memory.summarize = (messages) => agent.summarize(messages);
     await host.attach(agent);
+    bindAgentModules(agent, host, fallbacks);
+    // attach() may disable a module. Its disposed runtimes must not remain registered.
+    lifecycle.models = {
+      [ModelRole.FULL_LLM]: models[ModelRole.FULL_LLM],
+      [ModelRole.IDLE_LLM]: models[ModelRole.IDLE_LLM],
+      ...host.modelDefinitions(),
+    };
     return agent;
   } catch (error) {
     await host.dispose();

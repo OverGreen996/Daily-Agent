@@ -1,14 +1,29 @@
 ﻿param([string]$Destination=(Join-Path $env:LOCALAPPDATA 'DailyAgent'),[switch]$NoShortcut)
 $ErrorActionPreference='Stop'
+$record=$null
 function File-SHA256([string]$File){$hash=[Security.Cryptography.SHA256]::Create();$stream=[IO.File]::OpenRead($File);try{return ([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','').ToLowerInvariant()}finally{$stream.Dispose();$hash.Dispose()}}
+function Copy-DailyLocalSettings([string]$Source,[string]$Target){
+  # Keep private settings, but don't propagate retired service configuration.
+  $text=[IO.File]::ReadAllText($Source)
+  $clean=[regex]::Replace($text,'(?im)^[ \t]*(?:export[ \t]+)?(?:DAILY_(?:SEARXNG|XNG)_[A-Z0-9_]+|SEARCH_SHARED_DATA_DIR)[ \t]*=[^\r\n]*(?:\r?\n|$)','')
+  $clean=[regex]::Replace($clean,'(?im)^[ \t]*(?:export[ \t]+)?DAILY_SEARCH_PROVIDER[ \t]*=[ \t]*["'']?searxng["'']?[ \t]*(?:#[^\r\n]*)?(?:\r?\n|$)','')
+  if($text -eq $clean){[IO.File]::Copy($Source,$Target,$true)}
+  else{[IO.File]::WriteAllText($Target,$clean,[Text.UTF8Encoding]::new($false))}
+}
 $manifestPath=Join-Path $PSScriptRoot 'release-manifest.json'
 $manifest=Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 if($manifest.version -notmatch '^[a-zA-Z0-9._-]+$' -or $manifest.dataFormat -ne 1){throw 'Unsupported release manifest'}
+foreach($file in $manifest.files){
+ if($file.path -match '(^|[\\/])(xng-core|xng-plugin|Start-(?:SearXNG|XNG)\.ps1|Setup-LocalSearch\.ps1|searxng-compose\.yml|SearXNGProvider\.js|XngHubClient\.js|SharedCore\.js|QueryUnderstanding\.js)([\\/]|$)'){throw '此發行包包含已退役的搜尋插件，請使用不含舊搜尋核心的新版安裝包。'}
+}
 $payload=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'app'))
 foreach($file in $manifest.files){
   $full=[IO.Path]::GetFullPath((Join-Path $payload $file.path))
   if(!$full.StartsWith($payload+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Invalid package path'}
   if((File-SHA256 $full) -ne $file.sha256){throw ('Package checksum mismatch: '+$file.path)}
+  if($file.path -match '(^|[\\/])daily-agent[\\/]config\.js$' -and (Get-Content -LiteralPath $full -Raw) -match 'SEARCH_SHARED_DATA_DIR|GeminiHub'){
+    throw '此發行包仍會讀取靈動島的搜尋資料，已停止安裝；請使用搜尋資料獨立的新版。'
+  }
 }
 $destinationRoot=[IO.Path]::GetFullPath($Destination)
 $checkPath=$destinationRoot
@@ -19,7 +34,9 @@ if(Test-Path -LiteralPath $destinationRoot){
  $marker=Join-Path $destinationRoot '.daily-install.json'
  if(Test-Path -LiteralPath $marker){
   $record=Get-Content -LiteralPath $marker -Raw -Encoding UTF8 | ConvertFrom-Json
-  if($record.kind -ne 'DailyAgentInstallation' -or ![string]::Equals($record.root,$destinationRoot,[StringComparison]::OrdinalIgnoreCase)){throw '這個資料夾不屬於這套安裝。請變更安裝位置。'}
+  $matchingRoot=[string]::Equals($record.root,$destinationRoot,[StringComparison]::OrdinalIgnoreCase)
+  if($record.physicalRoot){$matchingRoot=$matchingRoot -or [string]::Equals($record.physicalRoot,$destinationRoot,[StringComparison]::OrdinalIgnoreCase)}
+  if($record.kind -ne 'DailyAgentInstallation' -or !$matchingRoot){throw '這個資料夾不屬於這套安裝。請變更安裝位置。'}
  }else{
   # A prior uninstall may leave only the explicitly retained Memory Palace.
   $entries=@(Get-ChildItem -LiteralPath $destinationRoot -Force)
@@ -57,7 +74,7 @@ $previous=$null
 if(Test-Path -LiteralPath $currentFile){$previous=(Get-Content -LiteralPath $currentFile -Raw -Encoding UTF8 | ConvertFrom-Json).current}
 if($previous -and $previous -match '^[a-zA-Z0-9._-]+$'){
   $previousEnv=Join-Path $destinationRoot ('releases\'+$previous+'\daily-agent\.env.local')
-  if(Test-Path -LiteralPath $previousEnv){Copy-Item -LiteralPath $previousEnv -Destination (Join-Path $release 'daily-agent\.env.local')}
+  if(Test-Path -LiteralPath $previousEnv){Copy-DailyLocalSettings $previousEnv (Join-Path $release 'daily-agent\.env.local')}
 }
 @{current=$manifest.version;previous=$previous;dataFormat=1} | ConvertTo-Json | Set-Content -LiteralPath ($currentFile+'.tmp') -Encoding UTF8
 Move-Item -LiteralPath ($currentFile+'.tmp') -Destination $currentFile -Force
@@ -65,7 +82,9 @@ Copy-Item -LiteralPath (Join-Path $release 'daily-agent\deploy\Launch-DailyAgent
 Copy-Item -LiteralPath (Join-Path $release 'daily-agent\deploy\Setup-Installed.ps1') -Destination (Join-Path $destinationRoot 'Setup-DailyAgent.ps1') -Force
 Copy-Item -LiteralPath (Join-Path $release 'daily-agent\deploy\Update-DailyAgent.ps1') -Destination (Join-Path $destinationRoot 'Update-DailyAgent.ps1') -Force
 Copy-Item -LiteralPath (Join-Path $release 'daily-agent\deploy\Uninstall-DailyAgent.ps1') -Destination (Join-Path $destinationRoot 'Uninstall-DailyAgent.ps1') -Force
-@{kind='DailyAgentInstallation';root=$destinationRoot} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destinationRoot '.daily-install.json') -Encoding UTF8
+$installRecord=@{kind='DailyAgentInstallation';root=$destinationRoot}
+if($record -and $record.physicalRoot){$installRecord.physicalRoot=$record.physicalRoot}
+$installRecord | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destinationRoot '.daily-install.json') -Encoding UTF8
 if(!$NoShortcut){
   $shell=New-Object -ComObject WScript.Shell
   $shortcut=$shell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'Daily Agent.lnk'))

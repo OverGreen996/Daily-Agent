@@ -3,7 +3,7 @@
     "id": "search",
     "name": "網路搜尋",
     "requires": [],
-    "description": "消費通用 XNG API；保留來源證據與免費本機備援。"
+    "description": "讀取公開網頁與已設定的搜尋 API；未設定時不自動安裝搜尋引擎。"
   },
   {
     "id": "environment",

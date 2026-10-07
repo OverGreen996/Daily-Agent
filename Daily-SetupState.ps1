@@ -5,7 +5,9 @@ function Get-DailyRuntimePath([string]$Root){
  if((Split-Path $parent -Leaf) -eq 'releases'){
   $install=Split-Path $parent -Parent
   $record=Get-Content -LiteralPath (Join-Path $install '.daily-install.json') -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json
-  if($record.kind -ne 'DailyAgentInstallation' -or ![string]::Equals([IO.Path]::GetFullPath($record.root).TrimEnd('\'),$install,[StringComparison]::OrdinalIgnoreCase)){throw 'Invalid Daily Agent installation marker'}
+  $matchingRoot=[string]::Equals([IO.Path]::GetFullPath($record.root).TrimEnd('\'),$install,[StringComparison]::OrdinalIgnoreCase)
+  if($record.physicalRoot){$matchingRoot=$matchingRoot -or [string]::Equals([IO.Path]::GetFullPath($record.physicalRoot).TrimEnd('\'),$install,[StringComparison]::OrdinalIgnoreCase)}
+  if($record.kind -ne 'DailyAgentInstallation' -or !$matchingRoot){throw 'Invalid Daily Agent installation marker'}
   return (Join-Path $install 'runtime')
  }
  $runtime=[IO.Path]::GetFullPath((Join-Path $Root '.daily-runtime'))
@@ -30,10 +32,14 @@ function Get-DailyPetProjectRoot([string]$Root,[switch]$UseSourceLibrary,[switch
   $null=Get-DailyRuntimePath $project
   return $project
  }
+ if(!$PSBoundParameters.ContainsKey('InstallRoot')){
+  $registered=(Get-ItemProperty -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\DailyAgent' -ErrorAction SilentlyContinue).InstallLocation
+  if($registered -and (Test-Path -LiteralPath (Join-Path $registered 'current.json'))){$InstallRoot=$registered}
+ }
  $install=[IO.Path]::GetFullPath($InstallRoot).TrimEnd('\')
  $pointer=Join-Path $install 'current.json'
  if(!(Test-Path -LiteralPath $pointer)){
-  if($RequireInstalled){throw 'Please install Daily Agent first; no source-library fallback is allowed'}
+  if($RequireInstalled){throw ('找不到 Daily Agent 安裝資訊：'+$install+'。若已安裝，請先開啟一次 Daily Agent，再重新開啟工具。')}
   return $project
  }
  $state=Get-Content -LiteralPath $pointer -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json
@@ -171,7 +177,7 @@ function Get-DailyFeatureStatus([string]$Root){
  $envFile=Join-Path $Root 'daily-agent\.env.local'
  $settings=if(Test-Path -LiteralPath $envFile){[IO.File]::ReadAllText($envFile)}else{''}
  $python=(Test-Path -LiteralPath (Join-Path $runtime 'ComfyUI_windows_portable\python_embeded\python.exe')) -and (Test-Path -LiteralPath (Join-Path $runtime 'ComfyUI_windows_portable\ComfyUI\main.py')) -and (Test-Path -LiteralPath (Join-Path $runtime 'ComfyUI_windows_portable\.environment-ready.json'))
- $result=@{core=(Get-DailyReadiness $Root).ready;browser=($settings -match '(?m)^DAILY_BROWSER_CHANNEL=');search=($settings -match '(?m)^DAILY_XNG_HUB_URL=');mobile=(Test-Path -LiteralPath (Join-Path $runtime 'cloudflared\cloudflared.exe'));anime=$false;photo=$false;tts=$false;stt=$false;imageEngine=$python}
+ $result=@{core=(Get-DailyReadiness $Root).ready;browser=($settings -match '(?m)^DAILY_BROWSER_CHANNEL=');search=($settings -match '(?m)^DAILY_SEARCH_PROVIDER=tavily\s*$' -and $settings -match '(?m)^TAVILY_API_KEY=\S+');mobile=(Test-Path -LiteralPath (Join-Path $runtime 'cloudflared\cloudflared.exe'));anime=$false;photo=$false;tts=$false;stt=$false;imageEngine=$python}
  foreach($entry in @(@('tts','tts\kokoro-multi-lang-v1_1'),@('stt','stt\sherpa-onnx-streaming-zipformer-zh-int8-2025-06-30'))){
   try{
    $directory=Join-Path $runtime $entry[1];$manifest=Get-Content -LiteralPath (Join-Path $directory '.asset-ready.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -189,7 +195,7 @@ function Get-DailyFeatureStatus([string]$Root){
 }
 function Get-DailyInstallPlan([string]$Root,[string[]]$Features,[hashtable]$Installed){
  if(!$Installed){$Installed=Get-DailyFeatureStatus $Root}
- $space=@{core=12;tts=1;stt=0.5;browser=0.7;mobile=0.1;search=6;anime=7.5;photo=7.5}
+ $space=@{core=12;tts=1;stt=0.5;browser=0.7;mobile=0.1;anime=7.5;photo=7.5}
  [double]$required=0
  foreach($id in $Features){if(!$Installed[$id]){$required+=$space[$id]}}
  if((($Features -contains 'anime' -and !$Installed.anime) -or ($Features -contains 'photo' -and !$Installed.photo)) -and !$Installed.imageEngine){$required+=10}

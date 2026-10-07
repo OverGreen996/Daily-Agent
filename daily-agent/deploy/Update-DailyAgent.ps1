@@ -30,5 +30,13 @@ try{
 [IO.Compression.ZipFile]::ExtractToDirectory($zip,$unpack)
 $release=Get-Content -LiteralPath (Join-Path $unpack 'release-manifest.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 if($release.version -ne $asset.version){throw 'OTA version mismatch'}
+foreach($file in $release.files){
+ if($file.path -match '(^|[\\/])(xng-core|xng-plugin|Start-(?:SearXNG|XNG)\.ps1|Setup-LocalSearch\.ps1|searxng-compose\.yml|SearXNGProvider\.js|XngHubClient\.js|SharedCore\.js|QueryUnderstanding\.js)([\\/]|$)'){throw '此更新包含已退役的搜尋插件，已停止安裝；目前程式與資料維持原樣。'}
+ if($file.path -match '(^|[\\/])daily-agent[\\/]config\.js$'){
+   $configFile=[IO.Path]::GetFullPath((Join-Path (Join-Path $unpack 'app') $file.path))
+   if(!$configFile.StartsWith([IO.Path]::GetFullPath((Join-Path $unpack 'app'))+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'Invalid config path'}
+   if((Get-Content -LiteralPath $configFile -Raw) -match 'SEARCH_SHARED_DATA_DIR|GeminiHub'){throw '此更新仍會讀取靈動島的搜尋資料，已停止安裝；目前程式與資料維持原樣。'}
+ }
+}
 & (Join-Path $unpack 'Install-DailyAgent.ps1') -Destination $PSScriptRoot -NoShortcut
 Write-Output 'Update installed. Restart with Launch-DailyAgent.ps1. Use -Rollback there to return to the previous release.'

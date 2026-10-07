@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'Daily-SetupState.ps1')
 $root=$PSScriptRoot
 $runtime=Get-DailyRuntimePath $PSScriptRoot
-$valid=@('core','tts','stt','browser','anime','photo','mobile','search')
+$valid=@('core','tts','stt','browser','anime','photo','mobile')
 if($Choose -and !$CheckOnly){$Features=& (Join-Path $root 'Select-DailyFeatures.ps1') -Runtime $runtime;if(!$Features){return}}
 $selected=@('core')+@($Features.Split(',') | ForEach-Object {$_.Trim().ToLowerInvariant()} | Where-Object {$_})
 if($selected -contains 'all'){$selected=$valid}
@@ -16,7 +16,6 @@ if($selected -contains 'browser'){$steps+=@{name='瀏覽器工具';file='Setup-B
 $image=@();if($selected -contains 'anime'){$image+='anime'};if($selected -contains 'photo'){$image+='photo'}
 if($image.Count){$steps+=@{name='所選生圖模型與 ComfyUI';file='Setup-ImageGeneration.ps1';arguments=@('-Profiles',($image -join ','))}}
 if($selected -contains 'mobile'){$steps+=@{name='外網手機連線工具';file='Setup-MobileBridge.ps1';arguments=@()}}
-if($selected -contains 'search'){$steps+=@{name='Docker、WSL 與網路搜尋';file='Setup-LocalSearch.ps1';arguments=@()}}
 if($CheckOnly){
   $steps | ForEach-Object {[pscustomobject]@{Step=$_.name;Script=$_.file;Available=(Test-Path (Join-Path $root $_.file))}}
   Write-Output 'No downloads or changes made. Full setup uses this directory and reuses its runtime. Cloudflare account/domain setup is personal.'

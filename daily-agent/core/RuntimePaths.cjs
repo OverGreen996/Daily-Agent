@@ -7,7 +7,8 @@ function getRuntimeDirectory(projectRoot) {
   if (path.basename(releases).toLowerCase() === 'releases') {
     const install = path.dirname(releases);
     const record = JSON.parse(fs.readFileSync(path.join(install, '.daily-install.json'), 'utf8').replace(/^\uFEFF/, ''));
-    if (record.kind !== 'DailyAgentInstallation' || typeof record.root !== 'string' || path.resolve(record.root).toLowerCase() !== install.toLowerCase()) {
+    const matches = [record.root, record.physicalRoot].some(candidate => typeof candidate === 'string' && candidate.length > 0 && path.resolve(candidate).toLowerCase() === install.toLowerCase());
+    if (record.kind !== 'DailyAgentInstallation' || !matches) {
       throw Error('Invalid Daily Agent installation marker');
     }
     return path.join(install, 'runtime');

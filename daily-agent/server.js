@@ -131,9 +131,10 @@ const server = http.createServer(async (req, res) => {
       }
       if (url.pathname === "/api/shutdown") {
         closing = true;
-        try { await agent.stop(); }
+        let shutdown;
+        try { shutdown = await agent.stop(); }
         catch (error) { closing = false; throw error; }
-        send(200, { stopped: true });
+        send(200, shutdown);
         setTimeout(() => { server.close(); process.exit(0); }, 100);
         return;
       }
@@ -207,6 +208,9 @@ const server = http.createServer(async (req, res) => {
     }
     const files = {
       "/": "index.html",
+      '/search-settings':'search-settings.html',
+      '/search-settings.js':'search-settings.js',
+      '/search-settings.css':'search-settings.css',
       "/pocketdrop":"pocketdrop.html",
       "/pocketdrop.js":"pocketdrop.js",
       "/app.js": "app.js",
@@ -221,7 +225,7 @@ const server = http.createServer(async (req, res) => {
       path.join(root, "ui", files[url.pathname]),
       "utf8",
     );
-    if (url.pathname === "/" || url.pathname==='/palace' || url.pathname==='/pocketdrop') content = content.replace("__TOKEN__", secret);
+    if (url.pathname === "/" || url.pathname==='/palace' || url.pathname==='/pocketdrop' || url.pathname==='/search-settings') content = content.replace("__TOKEN__", secret);
     res.writeHead(200, {
       "Content-Type": url.pathname.endsWith(".js")
         ? "text/javascript"

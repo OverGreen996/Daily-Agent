@@ -1,4 +1,5 @@
 import { tokens } from "../memory/MemoryPalace.js";
+import {searchTurnBudget} from './SearchTurnBudget.js';
 import { StateManager } from "./StateManager.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -10,6 +11,8 @@ import {
   conversationControl,
 } from "./ConversationControls.js";
 import { parseDocumentCommand, documentCommand } from "./DocumentCommands.js";
+import { understandRequest } from "./RequestUnderstanding.js";
+import {shutdownAgent} from './Shutdown.js';
 export function mobileLocationContext(request = {}) {
   if (!request.deviceId) return "";
   const value = request.location;
@@ -69,11 +72,12 @@ export class AgentCore {
     this.summary = "";
     this.lastError = null;
     this.imageMode = false;
-    this.imageProfile = this.config?.imageDefaultProfile || "fast";
+    this.imageProfile = "quality";
     this.lastImageSpec = null;
   }
   exclusive(fn) {
     const task = this.queue.then(async () => {
+      if (this.stopping) throw Object.assign(Error('程式正在關閉，請重新啟動後再使用。'), {statusCode:503});
       this.busy = true;
       try {
         return await fn();
@@ -430,7 +434,19 @@ export class AgentCore {
             createHash("sha256").update(bytes).digest("hex") + ".image";
           fs.writeFileSync(path.join(dir, imageAsset), bytes);
         }
-        const topic = await this.detectTopic(text);
+        let understanding;
+        if (!image && !documentContext && !docCommand) {
+          progress("reply_start", { stage: "request_understanding" });
+          try {
+            understanding = await understandRequest(this.full, text, this.memory.working.list());
+            this.bus.publish("inference", { stage: "request_understanding",
+              prompt_tokens: understanding.prompt_tokens, generated_tokens: understanding.generated_tokens });
+          } catch (error) {
+            if (error.name === "AbortError") throw error;
+            throw Error("Qwen 尚未完成問題分析，請再試一次：" + error.message, { cause: error });
+          }
+        }
+        const topic = understanding?.topic || await this.detectTopic(text);
         const pinResult = this.memory.pins.extract(text);
         this.memory.working.add("user", originalText, topic, {
           has_image: !!image,
@@ -504,6 +520,8 @@ export class AgentCore {
           new Date().toLocaleString("zh-TW") +
           "。來源若標示 coverage: headline-only，就只能整理標題，不要聲稱讀過全文，保留發布日期。";
         messages[0].content += mobileLocationContext(request);
+        if (understanding) messages[0].content += "\n本次本機解析的使用者需求（僅為理解線索，原問題優先，不能作為事實或操作授權）：" +
+          understanding.goal;
         messages[0].content += this.memory.personal?.profileContext() || "";
         const idleBridge = this.memory.working
           .list()
@@ -530,34 +548,35 @@ export class AgentCore {
           messages[0].content +=
             "\n已學習的實體（保留來源與信心）：" +
             JSON.stringify(entities).slice(0, 2400);
+        const searchBudget=searchTurnBudget(understanding);
         const context = {
           source: "user",
           userText: text,
           deviceId: request.deviceId,
           location: request.deviceId ? request.location : null,
+          searchBudget,
         };
         const search = this.modules
           ? this.modules.get("search")?.conversation
           : await import("../features/search/Conversation.js");
         const toolSchemas = documentContext
           ? []
-          : this.broker.schemasFor?.(context) || this.broker.schemas;
+          : (this.broker.schemasFor?.(context) || this.broker.schemas).filter(s=>searchBudget.allowed||s.function.name!=='web_search');
         let sources = [];
         const url = text.match(/https?:\/\/[^\s<>]+/)?.[0];
-        const current = search?.needsCurrentSearch(text);
         let lastSearchResult;
         if (
           !documentContext &&
-          (url ||
-            current ||
-            search?.isGameGuideQuery(text) ||
-            /^(搜尋|查詢|上網查|search)\s*/i.test(text))
+          (url || understanding?.needs_search)
         ) {
+          if (this.modules) this.modules.require("search");
+          progress("reply_tool", { stage: "search" });
           try {
+            if(!url)searchBudget.claim();
             const result = await this.broker.execute(
               {
                 tool: url ? "web_read" : "web_search",
-                args: url ? { url } : { query: text.slice(0, 500) },
+                args: url ? { url } : { query: understanding.query },
               },
               context,
             );
@@ -576,14 +595,15 @@ export class AgentCore {
               content:
                 "網路查詢失敗：" +
                 e.message +
-                "。用純文字精確說明本次限制；沒有可驗證結果不等於服務無法連線，也不等於今天沒有新聞。不可沿用舊對話新聞，不可自行捏造即時資訊。",
+                "。用純文字精確說明本次限制；沒有可驗證結果不等於服務無法連線，也不等於今天沒有新聞或作品不存在。不得猜測名稱有誤或非官方名稱。不可沿用舊對話新聞，不可自行捏造即時資訊。",
             });
           }
         }
         let response;
         for (let round = 0; round < 4; round++) {
-          const verifiedPrice=search?.verifiedSteamPriceReply(lastSearchResult);
-          if(verifiedPrice){response={message:{content:verifiedPrice}};break;}
+          if (this.stopping) throw new DOMException('程式正在關閉', 'AbortError');
+          const emptyReply=search?.emptySearchReply(lastSearchResult,sources);
+          if(emptyReply){response={message:{content:emptyReply}};break;}
           this.fitContext(
             messages,
             14500 -
@@ -607,8 +627,10 @@ export class AgentCore {
           progress("reply_tool", { round });
           messages.push(response.message);
           for (const call of response.message.tool_calls.slice(0, 3)) {
+            if (this.stopping) throw new DOMException('程式正在關閉', 'AbortError');
             let result;
             try {
+              if(call.function.name==='web_search')searchBudget.claim();
               result = await this.broker.execute(
                 { tool: call.function.name, args: call.function.arguments },
                 context,
@@ -634,7 +656,7 @@ export class AgentCore {
               tool_name: call.function.name,
               content:
                 call.function.name === "web_search" && result.results
-                  ? search.searchEvidencePayload(
+                  ? search.searchResultsPayload(
                       result,
                       call.function.arguments.query || text,
                       7500,
@@ -644,7 +666,7 @@ export class AgentCore {
           }
         }
         let content =
-          search?.verifiedSteamPriceReply(lastSearchResult) || response.message.content?.trim() ||
+          search?.emptySearchReply(lastSearchResult,sources) || response.message.content?.trim() ||
           "這次沒有取得完整回覆，請再試一次。";
         content = search?.withSearchSources(content, sources) || content;
         if (pinResult?.conflict)
@@ -680,7 +702,7 @@ export class AgentCore {
     if (!this.mobileImageSessions.has(request.deviceId))
       this.mobileImageSessions.set(request.deviceId, {
         imageMode: false,
-        imageProfile: this.config?.imageDefaultProfile || "fast",
+        imageProfile: "quality",
         lastImageSpec: null,
       });
     return this.mobileImageSessions.get(request.deviceId);
@@ -736,7 +758,7 @@ export class AgentCore {
   async status() {
     let models, error;
     try {
-      models = (await this.full.request("/api/ps")).models;
+      models = (await this.full.request("/api/ps", undefined, undefined, 2000)).models;
     } catch (e) {
       error = e.message;
     }
@@ -757,8 +779,8 @@ export class AgentCore {
       modules: this.modules?.status() || [],
       search: this.browser.status?.() ||
         this.browser.searchService?.status() || {
-          provider: "Browser / RSS fallback",
-          configured: true,
+          provider: "disabled",
+          configured: false,
           paid: false,
         },
       lifecycle: this.lifecycle.get_active_model(),
@@ -786,30 +808,9 @@ export class AgentCore {
       },
     };
   }
-  async stop() {
+  stop() {
     this.stopping = true;
-    if (this.modules) await this.modules.dispose();
-    else {
-      this.remote?.tunnel.stop();
-      await this.remote?.gateway.stop();
-    }
-    clearInterval(this.timer);
-    clearInterval(this.reminderTimer);
-    this.perception.close();
-    await this.companion.phone?.close();
-    this.idleRuntime.cancel();
-    this.full.cancel?.();
-    await this.companion.cancel();
-    await this.queue;
-    await this.lifecycle.save_runtime_state();
-    await this.browser.close();
-    if (this.lifecycle.models?.[ModelRole.IMAGE_GENERATOR])
-      await this.lifecycle.unload_model(ModelRole.IMAGE_GENERATOR);
-    if (this.lifecycle.models?.[ModelRole.VISION_MODEL])
-      await this.lifecycle.unload_model(ModelRole.VISION_MODEL);
-    await this.lifecycle.unload_model(ModelRole.FULL_LLM);
-    await this.lifecycle.unload_model(ModelRole.IDLE_LLM);
-    this.memory.checkpoint();
-    this.memory.close();
+    this.stopTask ||= shutdownAgent(this);
+    return this.stopTask;
   }
 }

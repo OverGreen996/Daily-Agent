@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {withUnderstanding} from './helpers/Understanding.js';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -63,6 +64,22 @@ test('non-streaming callers preserve the existing runtime contract',async t=>{
   assert.equal((await runtime.chat([])).message.content,'complete');
 });
 
+test('status polling cannot lose the cancellation handle for an ongoing inference',async t=>{
+  const server=http.createServer(async(req,res)=>{
+    req.resume();res.writeHead(200,{'Content-Type':'application/x-ndjson'});
+    if(req.url==='/api/ps')res.end(JSON.stringify({models:[]}));
+    else res.write(line({content:'進行中'}));
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  t.after(()=>{server.closeAllConnections();server.close();});
+  const runtime=new OllamaRuntime(`http://127.0.0.1:${server.address().port}`,'test');
+  let ready;const started=new Promise(resolve=>ready=resolve);
+  const inference=runtime.chat([],{onDelta:()=>ready()});
+  const rejection=assert.rejects(inference,/abort/i);
+  await started;assert.equal(await runtime.status(),null);assert.equal(runtime.controllers.size,1);
+  runtime.cancel();await rejection;assert.equal(runtime.controllers.size,0);assert.equal(runtime.controller,null);
+});
+
 function agentFixture(fail=false) {
   const events=[],saved=[],calls=[];
   const bus={publish(type,data,options){events.push({type,...data,options});}};
@@ -74,6 +91,7 @@ function agentFixture(fail=false) {
     if(!calls.length){onDelta('我先查一下');return {message:{content:'我先查一下',tool_calls:[{function:{name:'system_info',arguments:{}}}]}};}
     onDelta('完整');onDelta('答案');return {message:{content:'完整答案'}};
   }};
+  full.chat=withUnderstanding(full.chat);
   const agent=new AgentCore({config:{personality:'test'},full,bus,memory,companion:{boredom:{respond(){}}},
     broker:{schemas:[],async execute(call){calls.push(call);return {ok:true};}}});
   agent.wake=async()=>{};agent.detectTopic=async()=> 'test';agent.history=async()=>[{role:'user',content:'說個故事'}];
@@ -86,7 +104,7 @@ test('agent resets tool round preview and saves one completed answer with matchi
   assert.equal(calls.length,1);
   assert.deepEqual(saved.filter(m=>m.role==='assistant'),[{role:'assistant',content:'完整答案'}]);
   const progress=events.filter(e=>e.type.startsWith('reply_'));
-  assert.deepEqual(progress.map(e=>e.type),['reply_start','reply_delta','reply_tool','reply_start','reply_delta','reply_delta']);
+  assert.deepEqual(progress.map(e=>e.type),['reply_start','reply_start','reply_delta','reply_tool','reply_start','reply_delta','reply_delta']);
   assert.ok(progress.every(e=>e.stream_id===result.stream_id && e.options.transient));
   assert.equal(events.find(e=>e.type==='message').stream_id,result.stream_id);
 });

@@ -4,9 +4,11 @@ export class OllamaRuntime extends ModelRuntime {
   constructor(url, model, { cpu = false, context = 16384 } = {}) {
     super();
     Object.assign(this, { url, model, cpu, context });
+    this.controllers = new Set();
   }
-  async request(endpoint, body, onDelta) {
+  async request(endpoint, body, onDelta, timeoutMs = 240000) {
     const controller = new AbortController();
+    this.controllers.add(controller);
     this.controller = controller;
     try {
       const r = await fetch(this.url + endpoint, {
@@ -15,7 +17,7 @@ export class OllamaRuntime extends ModelRuntime {
         body: body ? JSON.stringify(body) : undefined,
         signal: AbortSignal.any([
           controller.signal,
-          AbortSignal.timeout(240000),
+          AbortSignal.timeout(timeoutMs),
         ]),
       });
       if (!r.ok)
@@ -49,11 +51,12 @@ export class OllamaRuntime extends ModelRuntime {
       return { ...final, message: { role: "assistant", content,
         ...(toolCalls.length ? { tool_calls: toolCalls } : {}) } };
     } finally {
-      if (this.controller === controller) this.controller = null;
+      this.controllers.delete(controller);
+      if (this.controller === controller) this.controller = [...this.controllers].at(-1) || null;
     }
   }
   cancel() {
-    this.controller?.abort();
+    for (const controller of this.controllers) controller.abort();
   }
   get options() {
     return {
@@ -64,7 +67,7 @@ export class OllamaRuntime extends ModelRuntime {
       temperature: 0.6,
     };
   }
-  async chat(messages, { tools, format, num_predict, onDelta, temperature } = {}) {
+  async chat(messages, { tools, format, num_predict, onDelta, temperature, timeoutMs } = {}) {
     return this.request("/api/chat", {
       model: this.model,
       messages,
@@ -74,7 +77,7 @@ export class OllamaRuntime extends ModelRuntime {
       think: false,
       keep_alive: "10m",
       options: { ...this.options, ...(num_predict ? { num_predict } : {}), ...(temperature!==undefined ? {temperature} : {}) },
-    }, onDelta);
+    }, onDelta, timeoutMs);
   }
   async load() {
     await this.request("/api/generate", {
@@ -92,11 +95,12 @@ export class OllamaRuntime extends ModelRuntime {
     return s;
   }
   async unload() {
+    if (!(await this.status())) return true;
     await this.request("/api/generate", {
       model: this.model,
       keep_alive: 0,
       stream: false,
-    });
+    }, undefined, 15000);
     for (let i = 0; i < 30; i++) {
       if (!(await this.status())) return true;
       await pause(250);
@@ -105,7 +109,7 @@ export class OllamaRuntime extends ModelRuntime {
   }
   async status() {
     return (
-      (await this.request("/api/ps")).models?.find(
+      (await this.request("/api/ps", undefined, undefined, 2000)).models?.find(
         (m) => m.name === this.model || m.model === this.model,
       ) || null
     );
